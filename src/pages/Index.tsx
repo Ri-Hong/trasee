@@ -3,6 +3,10 @@ import { CodeEditor } from "@/components/CodeEditor";
 import { ControlPanel } from "@/components/ControlPanel";
 import { VisualizationPanel } from "@/components/VisualizationPanel";
 import { VariablesPanel } from "@/components/VariablesPanel";
+import { LogConsole } from "@/components/LogConsole";
+import { useExecutionStore } from "@/store/executionStore";
+import { executePythonWithTrace } from "@/lib/pyodideWorker";
+import { toast } from "sonner";
 
 const DEFAULT_CODE = `# Definition for singly-linked list.
 class ListNode:
@@ -38,25 +42,107 @@ result = addTwoNumbers(l1, l2)
 
 const Index = () => {
   const [code, setCode] = useState(DEFAULT_CODE);
-  const [isRunning, setIsRunning] = useState(false);
+  const {
+    isRunning,
+    setIsRunning,
+    currentStep,
+    steps,
+    setSteps,
+    addLog,
+    clearLogs,
+    reset,
+    stepForward,
+    stepBack,
+    setError,
+  } = useExecutionStore();
 
-  const handleRun = () => {
+  const handleRun = async () => {
     setIsRunning(true);
-    // Placeholder for execution logic
-    setTimeout(() => setIsRunning(false), 1000);
+    clearLogs();
+    setError(null);
+
+    try {
+      addLog({ level: "info", message: "🚀 Starting execution..." });
+      addLog({
+        level: "info",
+        message:
+          "Initializing Pyodide (this may take a moment on first run)...",
+      });
+
+      // Execute with tracing
+      const result = await executePythonWithTrace(code);
+
+      // Log static analysis
+      addLog({
+        level: "success",
+        message: "✅ Static analysis complete",
+        data: result.staticAnalysis,
+      });
+
+      if (result.execution.status === "error") {
+        addLog({
+          level: "error",
+          message: `❌ Execution error: ${result.execution.error}`,
+          data: { traceback: result.execution.traceback },
+        });
+        setError(result.execution.error);
+        toast.error("Execution failed. Check the log for details.");
+      } else {
+        addLog({
+          level: "success",
+          message: `✅ Execution completed successfully with ${result.execution.steps.length} steps`,
+        });
+
+        // Set the execution steps
+        setSteps(result.execution.steps);
+
+        // Log data structure detection
+        if (result.execution.steps.length > 0) {
+          const lastStep =
+            result.execution.steps[result.execution.steps.length - 1];
+          const dataStructures = lastStep.variables.map((v: any) => ({
+            name: v.var_name,
+            type: v.type,
+          }));
+
+          addLog({
+            level: "info",
+            message: "🔍 Data structures detected",
+            data: dataStructures,
+          });
+        }
+
+        toast.success("Code executed successfully!");
+      }
+    } catch (error: any) {
+      addLog({
+        level: "error",
+        message: `❌ Fatal error: ${error.message}`,
+        data: { stack: error.stack },
+      });
+      setError(error.message);
+      toast.error("Fatal error during execution");
+    } finally {
+      setIsRunning(false);
+    }
   };
 
   const handleStepForward = () => {
-    // Placeholder
+    stepForward();
   };
 
   const handleStepBack = () => {
-    // Placeholder
+    stepBack();
   };
 
   const handleReset = () => {
+    reset();
     setCode(DEFAULT_CODE);
+    toast.info("Reset to default code");
   };
+
+  const canStepBack = currentStep > 0;
+  const canStepForward = currentStep < steps.length - 1;
 
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -66,22 +152,30 @@ const Index = () => {
         onStepBack={handleStepBack}
         onReset={handleReset}
         isRunning={isRunning}
-        canStepBack={false}
-        canStepForward={false}
+        canStepBack={canStepBack}
+        canStepForward={canStepForward}
       />
-      
+
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Panel - Code Editor */}
-        <div className="w-1/2 p-4 border-r border-border">
-          <CodeEditor value={code} onChange={(value) => setCode(value || "")} />
+        {/* Left Panel - Code Editor & Logs */}
+        <div className="w-1/2 flex flex-col border-r border-border">
+          <div className="flex-1 p-4">
+            <CodeEditor
+              value={code}
+              onChange={(value) => setCode(value || "")}
+            />
+          </div>
+          <div className="h-64 border-t border-border">
+            <LogConsole />
+          </div>
         </div>
-        
-        {/* Right Panel - Visualization */}
+
+        {/* Right Panel - Visualization & Variables */}
         <div className="w-1/2 flex flex-col">
-          <div className="flex-1">
+          <div className="flex-1 overflow-hidden">
             <VisualizationPanel />
           </div>
-          <div className="h-64 border-t border-border p-4">
+          <div className="h-64 border-t border-border">
             <VariablesPanel />
           </div>
         </div>
