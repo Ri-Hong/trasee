@@ -195,6 +195,100 @@ const Index = () => {
     toast.info("Reset to default code");
   };
 
+  const handleLoadExample = async (exampleCode: string) => {
+    reset();
+    setCode(exampleCode);
+    toast.success("Example loaded! Running visualization...");
+
+    // Auto-run the example after a brief delay to let state update
+    setTimeout(async () => {
+      setIsRunning(true);
+      clearLogs();
+      setError(null);
+
+      try {
+        addLog({ level: "info", message: "🚀 Starting execution..." });
+
+        const result = await executePythonWithTrace(exampleCode);
+
+        addLog({
+          level: "success",
+          message: "✅ Static analysis complete",
+          data: result.staticAnalysis,
+        });
+
+        if (result.execution.status === "error") {
+          addLog({
+            level: "error",
+            message: `❌ Execution error: ${result.execution.error}`,
+            data: { traceback: result.execution.traceback },
+          });
+          setError(result.execution.error);
+          toast.error("Execution failed. Check the log for details.");
+        } else {
+          addLog({
+            level: "success",
+            message: `✅ Execution completed successfully with ${result.execution.steps.length} steps`,
+          });
+
+          setSteps(result.execution.steps);
+
+          if (result.execution.steps.length > 0) {
+            const allVariablesMap = new Map<string, any>();
+
+            result.execution.steps.forEach((step: any) => {
+              step.variables.forEach((v: any) => {
+                const key = `${v.scope_id}_${v.var_name}`;
+
+                if (
+                  [
+                    "function",
+                    "type",
+                    "module",
+                    "method",
+                    "builtin_function_or_method",
+                  ].includes(v.type)
+                ) {
+                  return;
+                }
+
+                allVariablesMap.set(key, v);
+              });
+            });
+
+            const dataStructures = Array.from(allVariablesMap.values()).map(
+              (v: any) => ({
+                name: v.var_name,
+                type: v.type,
+                scope_id: v.scope_id,
+              })
+            );
+
+            if (dataStructures.length > 0) {
+              addLog({
+                level: "info",
+                message: "🔍 Data structures detected",
+                data: dataStructures,
+              });
+            }
+          }
+
+          toast.success("Visualization ready!");
+        }
+      } catch (error: any) {
+        addLog({
+          level: "error",
+          message: `❌ Fatal error: ${error.message}`,
+          data: { stack: error.stack },
+        });
+        setError(error.message);
+        toast.error("Fatal error during execution");
+      } finally {
+        setIsRunning(false);
+      }
+    }, 100);
+  };
+
   const canStepBack = currentStep > 0;
   const canStepForward = currentStep < steps.length - 1;
   const currentLine = steps[currentStep]?.line;
@@ -210,6 +304,7 @@ const Index = () => {
         onStepOut={handleStepOut}
         onStepToNextIteration={handleStepToNextIteration}
         onReset={handleReset}
+        onLoadExample={handleLoadExample}
         isRunning={isRunning}
         canStepBack={canStepBack}
         canStepForward={canStepForward}

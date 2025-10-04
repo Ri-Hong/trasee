@@ -24,6 +24,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { ExamplesLibrary } from "@/components/ExamplesLibrary";
 
 interface ControlPanelProps {
   onRun: () => void;
@@ -34,6 +35,7 @@ interface ControlPanelProps {
   onStepOut: () => void;
   onStepToNextIteration: () => void;
   onReset: () => void;
+  onLoadExample: (code: string) => void;
   isRunning: boolean;
   canStepBack: boolean;
   canStepForward: boolean;
@@ -48,6 +50,7 @@ export function ControlPanel({
   onStepOut,
   onStepToNextIteration,
   onReset,
+  onLoadExample,
   isRunning,
   canStepBack,
   canStepForward,
@@ -159,6 +162,8 @@ export function ControlPanel({
           <RotateCcw className="w-4 h-4 mr-2" />
           Reset
         </Button>
+
+        <ExamplesLibrary onSelectExample={onLoadExample} />
 
         <Dialog>
           <DialogTrigger asChild>

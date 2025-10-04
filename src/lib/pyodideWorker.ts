@@ -229,11 +229,20 @@ def run_with_trace(code):
     execution_steps = []
     
     try:
+        # Create a fresh namespace for each execution
+        # This prevents variables from previous runs from persisting
+        exec_globals = {
+            '__builtins__': __builtins__,
+            '__name__': '__main__',
+            '__doc__': None,
+            '__package__': None
+        }
+        
         # Set up tracing
         sys.settrace(trace_calls)
         
-        # Execute the code
-        exec(code, globals())
+        # Execute the code in the fresh namespace
+        exec(code, exec_globals)
         
         # Disable tracing
         sys.settrace(None)

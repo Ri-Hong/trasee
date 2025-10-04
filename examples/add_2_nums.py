@@ -5,7 +5,7 @@ class ListNode:
         self.next = next
 
 def addTwoNumbers(self, l1: ListNode, l2: ListNode) -> ListNode:
-    dummy = Listode()
+    dummy = ListNode()
     curr = dummy
     carry = 0
 
