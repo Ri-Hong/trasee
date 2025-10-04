@@ -80,6 +80,13 @@ def analyze_variables(code):
 execution_steps = []
 current_frame_vars = {}
 
+# Variables to exclude (tracer internals)
+TRACER_VARS = {
+    '_pyodide_core', 'sys', 'json', 'ast', 'traceback', 'math',
+    'analyze_variables', 'execution_steps', 'current_frame_vars',
+    'trace_calls', 'serialize_value', 'run_with_trace', 'TRACER_VARS'
+}
+
 def trace_calls(frame, event, arg):
     """Trace function to capture execution steps."""
     try:
@@ -89,20 +96,34 @@ def trace_calls(frame, event, arg):
         # Get current line and code
         lineno = frame.f_lineno
         filename = frame.f_code.co_filename
+        function_name = frame.f_code.co_name
         
         # Only trace our code, not library code
         if filename != '<string>':
             return trace_calls
         
+        # Skip tracing inside our tracer functions
+        if function_name in ('analyze_variables', 'trace_calls', 'serialize_value', 'run_with_trace'):
+            return trace_calls
+        
         # Get scope_id (function start line or 0 for module level)
-        scope_id = frame.f_code.co_firstlineno if frame.f_code.co_name != '<module>' else 0
+        scope_id = frame.f_code.co_firstlineno if function_name != '<module>' else 0
         
         # Capture local variables
         variables = []
         local_vars = frame.f_locals.copy()
         
         for var_name, value in local_vars.items():
+            # Skip dunder variables
             if var_name.startswith('__'):
+                continue
+            
+            # Skip tracer internals
+            if var_name in TRACER_VARS:
+                continue
+            
+            # Skip module types
+            if type(value).__name__ == 'module':
                 continue
             
             var_info = {

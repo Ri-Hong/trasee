@@ -103,18 +103,47 @@ const Index = () => {
 
         // Log data structure detection
         if (result.execution.steps.length > 0) {
-          const lastStep =
-            result.execution.steps[result.execution.steps.length - 1];
-          const dataStructures = lastStep.variables.map((v: any) => ({
-            name: v.var_name,
-            type: v.type,
-          }));
+          // Collect all unique variables across all steps (not just the last one)
+          const allVariablesMap = new Map<string, any>();
 
-          addLog({
-            level: "info",
-            message: "🔍 Data structures detected",
-            data: dataStructures,
+          result.execution.steps.forEach((step: any) => {
+            step.variables.forEach((v: any) => {
+              // Use scope_id + var_name as unique key
+              const key = `${v.scope_id}_${v.var_name}`;
+
+              // Skip functions, types, modules
+              if (
+                [
+                  "function",
+                  "type",
+                  "module",
+                  "method",
+                  "builtin_function_or_method",
+                ].includes(v.type)
+              ) {
+                return;
+              }
+
+              // Keep the latest value for each variable
+              allVariablesMap.set(key, v);
+            });
           });
+
+          const dataStructures = Array.from(allVariablesMap.values()).map(
+            (v: any) => ({
+              name: v.var_name,
+              type: v.type,
+              scope_id: v.scope_id,
+            })
+          );
+
+          if (dataStructures.length > 0) {
+            addLog({
+              level: "info",
+              message: "🔍 Data structures detected",
+              data: dataStructures,
+            });
+          }
         }
 
         toast.success("Code executed successfully!");
