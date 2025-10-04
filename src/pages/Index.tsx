@@ -7,6 +7,11 @@ import { LogConsole } from "@/components/LogConsole";
 import { useExecutionStore } from "@/store/executionStore";
 import { executePythonWithTrace } from "@/lib/pyodideWorker";
 import { toast } from "sonner";
+import {
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
+} from "@/components/ui/resizable";
 
 const DEFAULT_CODE = `# Definition for singly-linked list.
 class ListNode:
@@ -156,30 +161,44 @@ const Index = () => {
         canStepForward={canStepForward}
       />
 
-      <div className="flex-1 flex overflow-hidden">
+      <ResizablePanelGroup direction="horizontal" className="flex-1">
         {/* Left Panel - Code Editor & Logs */}
-        <div className="w-1/2 flex flex-col border-r border-border">
-          <div className="flex-1 p-4">
-            <CodeEditor
-              value={code}
-              onChange={(value) => setCode(value || "")}
-            />
-          </div>
-          <div className="h-64 border-t border-border">
-            <LogConsole />
-          </div>
-        </div>
+        <ResizablePanel defaultSize={50} minSize={30}>
+          <ResizablePanelGroup direction="vertical">
+            <ResizablePanel defaultSize={60} minSize={20}>
+              <div className="h-full p-4">
+                <CodeEditor
+                  value={code}
+                  onChange={(value) => setCode(value || "")}
+                />
+              </div>
+            </ResizablePanel>
+
+            <ResizableHandle withHandle />
+
+            <ResizablePanel defaultSize={40} minSize={15}>
+              <LogConsole />
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        </ResizablePanel>
+
+        <ResizableHandle withHandle />
 
         {/* Right Panel - Visualization & Variables */}
-        <div className="w-1/2 flex flex-col">
-          <div className="flex-1 overflow-hidden">
-            <VisualizationPanel />
-          </div>
-          <div className="h-64 border-t border-border">
-            <VariablesPanel />
-          </div>
-        </div>
-      </div>
+        <ResizablePanel defaultSize={50} minSize={30}>
+          <ResizablePanelGroup direction="vertical">
+            <ResizablePanel defaultSize={60} minSize={20}>
+              <VisualizationPanel />
+            </ResizablePanel>
+
+            <ResizableHandle withHandle />
+
+            <ResizablePanel defaultSize={40} minSize={15}>
+              <VariablesPanel />
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        </ResizablePanel>
+      </ResizablePanelGroup>
     </div>
   );
 };
