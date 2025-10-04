@@ -19,7 +19,12 @@ export function LinkedListVisualizer({
 }: LinkedListVisualizerProps) {
   if (!data.nodes || data.nodes.length === 0) {
     return (
-      <div className="text-sm text-muted-foreground">Empty linked list</div>
+      <div className="space-y-2">
+        <div className="text-sm font-medium text-muted-foreground">
+          {variableName}
+        </div>
+        <div className="text-sm text-muted-foreground">Empty linked list</div>
+      </div>
     );
   }
 

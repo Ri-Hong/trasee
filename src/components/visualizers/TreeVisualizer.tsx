@@ -103,7 +103,14 @@ export function TreeVisualizer({ data, variableName }: TreeVisualizerProps) {
   }, [data]);
 
   if (!data.root) {
-    return <div className="text-sm text-muted-foreground">Empty tree</div>;
+    return (
+      <div className="space-y-2">
+        <div className="text-sm font-medium text-muted-foreground">
+          {variableName}
+        </div>
+        <div className="text-sm text-muted-foreground">Empty tree</div>
+      </div>
+    );
   }
 
   return (

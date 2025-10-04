@@ -9,7 +9,14 @@ interface ListVisualizerProps {
 
 export function ListVisualizer({ data, variableName }: ListVisualizerProps) {
   if (!data.items || data.items.length === 0) {
-    return <div className="text-sm text-muted-foreground">Empty list</div>;
+    return (
+      <div className="space-y-2">
+        <div className="text-sm font-medium text-muted-foreground">
+          {variableName}
+        </div>
+        <div className="text-sm text-muted-foreground">Empty list</div>
+      </div>
+    );
   }
 
   return (
