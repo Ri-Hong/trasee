@@ -58,6 +58,10 @@ const Index = () => {
     reset,
     stepForward,
     stepBack,
+    stepInto,
+    stepOver,
+    stepOut,
+    stepToNextIteration,
     setError,
   } = useExecutionStore();
 
@@ -169,6 +173,22 @@ const Index = () => {
     stepBack();
   };
 
+  const handleStepInto = () => {
+    stepInto();
+  };
+
+  const handleStepOver = () => {
+    stepOver();
+  };
+
+  const handleStepOut = () => {
+    stepOut();
+  };
+
+  const handleStepToNextIteration = () => {
+    stepToNextIteration();
+  };
+
   const handleReset = () => {
     reset();
     setCode(DEFAULT_CODE);
@@ -185,6 +205,10 @@ const Index = () => {
         onRun={handleRun}
         onStepForward={handleStepForward}
         onStepBack={handleStepBack}
+        onStepInto={handleStepInto}
+        onStepOver={handleStepOver}
+        onStepOut={handleStepOut}
+        onStepToNextIteration={handleStepToNextIteration}
         onReset={handleReset}
         isRunning={isRunning}
         canStepBack={canStepBack}

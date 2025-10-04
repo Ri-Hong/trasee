@@ -80,16 +80,19 @@ def analyze_variables(code):
 # Runtime Tracing
 execution_steps = []
 current_frame_vars = {}
+call_stack_depth = 0
 
 # Variables to exclude (tracer internals)
 TRACER_VARS = {
     '_pyodide_core', 'sys', 'json', 'ast', 'traceback', 'math',
     'analyze_variables', 'execution_steps', 'current_frame_vars',
-    'trace_calls', 'serialize_value', 'run_with_trace', 'TRACER_VARS'
+    'trace_calls', 'serialize_value', 'run_with_trace', 'TRACER_VARS',
+    'call_stack_depth'
 }
 
 def trace_calls(frame, event, arg):
     """Trace function to capture execution steps."""
+    global call_stack_depth
     try:
         if event not in ('line', 'call', 'return'):
             return trace_calls
@@ -106,6 +109,13 @@ def trace_calls(frame, event, arg):
         # Skip tracing inside our tracer functions
         if function_name in ('analyze_variables', 'trace_calls', 'serialize_value', 'run_with_trace'):
             return trace_calls
+        
+        # Update call stack depth
+        if event == 'call':
+            call_stack_depth += 1
+        elif event == 'return':
+            # Record return before decrementing
+            pass
         
         # Get scope_id (function start line or 0 for module level)
         scope_id = frame.f_code.co_firstlineno if function_name != '<module>' else 0
@@ -135,13 +145,20 @@ def trace_calls(frame, event, arg):
             }
             variables.append(var_info)
         
-        # Record step
+        # Record step with call depth info
         step = {
             "line": lineno,
             "event": event,
-            "variables": variables
+            "variables": variables,
+            "scope_id": scope_id,
+            "function_name": function_name,
+            "depth": call_stack_depth
         }
         execution_steps.append(step)
+        
+        # Decrement depth after recording return
+        if event == 'return':
+            call_stack_depth = max(0, call_stack_depth - 1)
         
         return trace_calls
     except Exception as e:
