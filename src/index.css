@@ -63,3 +63,15 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Monaco Editor Current Line Highlight */
+.current-line-highlight {
+  background: rgba(255, 193, 7, 0.15) !important;
+  border-left: 3px solid rgba(255, 193, 7, 0.8) !important;
+}
+
+.current-line-glyph {
+  background: rgba(255, 193, 7, 0.8) !important;
+  width: 4px !important;
+  margin-left: 3px;
+}

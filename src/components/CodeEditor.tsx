@@ -5,12 +5,14 @@ import { validatePythonCode } from "@/lib/pyodideWorker";
 interface CodeEditorProps {
   value: string;
   onChange: (value: string | undefined) => void;
+  currentLine?: number;
 }
 
-export function CodeEditor({ value, onChange }: CodeEditorProps) {
+export function CodeEditor({ value, onChange, currentLine }: CodeEditorProps) {
   const monacoRef = useRef<Monaco | null>(null);
   const editorRef = useRef<any>(null);
   const validationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const decorationsRef = useRef<string[]>([]);
 
   const validateCode = useCallback(async (code: string) => {
     if (!monacoRef.current || !editorRef.current || !code.trim()) {
@@ -99,6 +101,43 @@ export function CodeEditor({ value, onChange }: CodeEditorProps) {
       }
     };
   }, []);
+
+  // Update line highlight when currentLine changes
+  useEffect(() => {
+    if (!editorRef.current) return;
+
+    const editor = editorRef.current;
+
+    if (currentLine !== undefined && currentLine > 0) {
+      // Add decoration for current line
+      const newDecorations = editor.deltaDecorations(decorationsRef.current, [
+        {
+          range: {
+            startLineNumber: currentLine,
+            startColumn: 1,
+            endLineNumber: currentLine,
+            endColumn: 1,
+          },
+          options: {
+            isWholeLine: true,
+            className: "current-line-highlight",
+            glyphMarginClassName: "current-line-glyph",
+          },
+        },
+      ]);
+      decorationsRef.current = newDecorations;
+
+      // Scroll to the current line and center it
+      editor.revealLineInCenter(currentLine);
+    } else {
+      // Clear decorations if no current line
+      const newDecorations = editor.deltaDecorations(
+        decorationsRef.current,
+        []
+      );
+      decorationsRef.current = newDecorations;
+    }
+  }, [currentLine]);
 
   return (
     <div className="h-full w-full bg-editor-bg rounded-lg overflow-hidden border border-border">

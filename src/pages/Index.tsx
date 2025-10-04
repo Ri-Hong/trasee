@@ -177,6 +177,7 @@ const Index = () => {
 
   const canStepBack = currentStep > 0;
   const canStepForward = currentStep < steps.length - 1;
+  const currentLine = steps[currentStep]?.line;
 
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -199,6 +200,7 @@ const Index = () => {
                 <CodeEditor
                   value={code}
                   onChange={(value) => setCode(value || "")}
+                  currentLine={currentLine}
                 />
               </div>
             </ResizablePanel>
