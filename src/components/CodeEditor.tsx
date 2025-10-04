@@ -27,6 +27,12 @@ export function CodeEditor({ value, onChange }: CodeEditorProps) {
 
     try {
       const result = await validatePythonCode(code);
+
+      // Check if editor still exists (user might have navigated away)
+      if (!monacoRef.current || !editorRef.current) {
+        return;
+      }
+
       const monaco = monacoRef.current;
       const editor = editorRef.current;
 
@@ -67,18 +73,13 @@ export function CodeEditor({ value, onChange }: CodeEditorProps) {
     [validateCode]
   );
 
-  const handleEditorDidMount = useCallback(
-    (editor: any, monaco: Monaco) => {
-      monacoRef.current = monaco;
-      editorRef.current = editor;
+  const handleEditorDidMount = useCallback((editor: any, monaco: Monaco) => {
+    monacoRef.current = monaco;
+    editorRef.current = editor;
 
-      // Run initial validation
-      if (value) {
-        debouncedValidate(value);
-      }
-    },
-    [value, debouncedValidate]
-  );
+    // Don't run validation on initial load to avoid freezing
+    // It will run when the user starts editing
+  }, []);
 
   const handleChange = useCallback(
     (newValue: string | undefined) => {

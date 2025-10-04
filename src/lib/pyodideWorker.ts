@@ -1,6 +1,7 @@
 import { loadPyodide } from "pyodide";
 
 let pyodideInstance: any = null;
+let validatorLoaded = false;
 
 export async function initializePyodide() {
   if (!pyodideInstance) {
@@ -285,8 +286,9 @@ json.dumps(result, ensure_ascii=False)
 export async function validatePythonCode(code: string) {
   const pyodide = await initializePyodide();
 
-  // Create a validation script
-  const validatorScript = `
+  // Only load the validator script once
+  if (!validatorLoaded) {
+    const validatorScript = `
 import ast
 import sys
 import json
@@ -469,8 +471,10 @@ def validate_code(code: str) -> Dict[str, Any]:
 __validation_result__ = None
 `;
 
-  // Load the validator
-  await pyodide.runPythonAsync(validatorScript);
+    // Load the validator script only once
+    await pyodide.runPythonAsync(validatorScript);
+    validatorLoaded = true;
+  }
 
   // Run validation
   try {
@@ -481,7 +485,7 @@ json.dumps(result, ensure_ascii=False)
     `);
 
     return JSON.parse(result);
-  } catch (e) {
+  } catch (e: any) {
     console.error("Validation error:", e);
     return {
       errors: [
