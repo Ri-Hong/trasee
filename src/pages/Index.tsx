@@ -2,7 +2,6 @@ import { useState } from "react";
 import { CodeEditor } from "@/components/CodeEditor";
 import { ControlPanel } from "@/components/ControlPanel";
 import { VisualizationPanel } from "@/components/VisualizationPanel";
-import { VariablesPanel } from "@/components/VariablesPanel";
 import { LogConsole } from "@/components/LogConsole";
 import { useExecutionStore } from "@/store/executionStore";
 import { executePythonWithTrace } from "@/lib/pyodideWorker";
@@ -333,19 +332,9 @@ const Index = () => {
 
         <ResizableHandle withHandle />
 
-        {/* Right Panel - Visualization & Variables */}
+        {/* Right Panel - Variables Visualization */}
         <ResizablePanel defaultSize={50} minSize={30}>
-          <ResizablePanelGroup direction="vertical">
-            <ResizablePanel defaultSize={60} minSize={20}>
-              <VisualizationPanel />
-            </ResizablePanel>
-
-            <ResizableHandle withHandle />
-
-            <ResizablePanel defaultSize={40} minSize={15}>
-              <VariablesPanel />
-            </ResizablePanel>
-          </ResizablePanelGroup>
+          <VisualizationPanel />
         </ResizablePanel>
       </ResizablePanelGroup>
     </div>

@@ -1,4 +1,4 @@
-import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 interface PrimitiveVisualizerProps {
   value: any;
@@ -14,29 +14,28 @@ export function PrimitiveVisualizer({
   const getColor = () => {
     switch (type) {
       case "num":
-        return "from-blue-500/10 to-cyan-500/10 border-blue-500/20";
+        return "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/30";
       case "string":
-        return "from-yellow-500/10 to-amber-500/10 border-yellow-500/20";
+        return "bg-yellow-500/10 text-yellow-700 dark:text-yellow-300 border-yellow-500/30";
       case "boolean":
-        return "from-purple-500/10 to-pink-500/10 border-purple-500/20";
+        return "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30";
       default:
-        return "from-gray-500/10 to-slate-500/10 border-gray-500/20";
+        return "bg-gray-500/10 text-gray-700 dark:text-gray-300 border-gray-500/30";
     }
   };
 
+  const formatValue = () => {
+    if (type === "string") return `"${value}"`;
+    return String(value);
+  };
+
   return (
-    <div className="space-y-2">
-      <div className="text-sm font-medium text-muted-foreground">
-        {variableName}
-      </div>
-      <Card className={`p-3 bg-gradient-to-br ${getColor()}`}>
-        <div className="text-sm">
-          <span className="text-muted-foreground">{type}: </span>
-          <span className="font-semibold">
-            {type === "string" ? `"${value}"` : String(value)}
-          </span>
-        </div>
-      </Card>
+    <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border bg-background/50 hover:bg-background/80 transition-colors">
+      <span className="text-sm font-mono font-medium">{variableName}</span>
+      <span className="text-muted-foreground">=</span>
+      <Badge variant="outline" className={`${getColor()} font-mono text-xs`}>
+        {formatValue()}
+      </Badge>
     </div>
   );
 }
