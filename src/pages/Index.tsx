@@ -191,8 +191,7 @@ const Index = () => {
 
   const handleReset = () => {
     reset();
-    setCode(DEFAULT_CODE);
-    toast.info("Reset to default code");
+    toast.info("Execution state cleared");
   };
 
   const handleLoadExample = async (exampleCode: string) => {
