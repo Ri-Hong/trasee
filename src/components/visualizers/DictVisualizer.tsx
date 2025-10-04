@@ -8,9 +8,14 @@ interface DictVisualizerProps {
 }
 
 export function DictVisualizer({ data, variableName }: DictVisualizerProps) {
-  if (!data.entries || data.entries.length === 0) {
+  if (!data || !data.entries || data.entries.length === 0) {
     return (
-      <div className="text-sm text-muted-foreground">Empty dictionary</div>
+      <div className="space-y-2">
+        <div className="text-sm font-medium text-muted-foreground">
+          {variableName}
+        </div>
+        <div className="text-sm text-muted-foreground">Empty dictionary</div>
+      </div>
     );
   }
 

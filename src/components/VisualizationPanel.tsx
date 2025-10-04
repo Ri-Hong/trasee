@@ -107,6 +107,15 @@ export function VisualizationPanel() {
                     structureType
                   );
 
+                  console.log(
+                    "Variable:",
+                    variable.var_name,
+                    "Type:",
+                    structureType,
+                    "VizData:",
+                    vizData
+                  );
+
                   // Skip primitives (already rendered above)
                   if (["num", "string", "boolean"].includes(structureType)) {
                     return null;

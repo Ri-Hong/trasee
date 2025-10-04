@@ -87,8 +87,43 @@ TRACER_VARS = {
     '_pyodide_core', 'sys', 'json', 'ast', 'traceback', 'math',
     'analyze_variables', 'execution_steps', 'current_frame_vars',
     'trace_calls', 'serialize_value', 'run_with_trace', 'TRACER_VARS',
-    'call_stack_depth'
+    'call_stack_depth', 'capture_variables'
 }
+
+def capture_variables(frame):
+    """Helper to capture variables from a frame."""
+    scope_id = frame.f_code.co_firstlineno if frame.f_code.co_name != '<module>' else 0
+    variables = []
+    
+    # For module-level code, use frame.f_globals which contains the exec globals
+    # For functions, use frame.f_locals
+    if frame.f_code.co_name == '<module>':
+        local_vars = frame.f_globals.copy()
+    else:
+        local_vars = frame.f_locals.copy()
+    
+    for var_name, value in local_vars.items():
+        # Skip dunder variables
+        if var_name.startswith('__'):
+            continue
+        
+        # Skip tracer internals
+        if var_name in TRACER_VARS:
+            continue
+        
+        # Skip module types
+        if type(value).__name__ == 'module':
+            continue
+        
+        var_info = {
+            "scope_id": scope_id,
+            "var_name": var_name,
+            "type": type(value).__name__,
+            "value": serialize_value(value)
+        }
+        variables.append(var_info)
+    
+    return variables
 
 def trace_calls(frame, event, arg):
     """Trace function to capture execution steps."""
@@ -107,45 +142,22 @@ def trace_calls(frame, event, arg):
             return trace_calls
         
         # Skip tracing inside our tracer functions
-        if function_name in ('analyze_variables', 'trace_calls', 'serialize_value', 'run_with_trace'):
+        if function_name in ('analyze_variables', 'trace_calls', 'serialize_value', 'run_with_trace', 'capture_variables'):
             return trace_calls
+        
+        # Get scope_id
+        scope_id = frame.f_code.co_firstlineno if function_name != '<module>' else 0
         
         # Update call stack depth
         if event == 'call':
             call_stack_depth += 1
         elif event == 'return':
-            # Record return before decrementing
-            pass
+            pass  # Will decrement after recording
         
-        # Get scope_id (function start line or 0 for module level)
-        scope_id = frame.f_code.co_firstlineno if function_name != '<module>' else 0
+        # Capture variables at this moment (before line executes)
+        variables = capture_variables(frame)
         
-        # Capture local variables
-        variables = []
-        local_vars = frame.f_locals.copy()
-        
-        for var_name, value in local_vars.items():
-            # Skip dunder variables
-            if var_name.startswith('__'):
-                continue
-            
-            # Skip tracer internals
-            if var_name in TRACER_VARS:
-                continue
-            
-            # Skip module types
-            if type(value).__name__ == 'module':
-                continue
-            
-            var_info = {
-                "scope_id": scope_id,
-                "var_name": var_name,
-                "type": type(value).__name__,
-                "value": serialize_value(value)
-            }
-            variables.append(var_info)
-        
-        # Record step with call depth info
+        # Record step
         step = {
             "line": lineno,
             "event": event,
@@ -201,8 +213,9 @@ def serialize_value(value, max_depth=5, current_depth=0):
     if isinstance(value, dict):
         result = {}
         for k, v in list(value.items())[:20]:
-            if isinstance(k, str):
-                result[k] = serialize_value(v, max_depth, current_depth + 1)
+            # Convert key to string for JSON compatibility
+            key_str = str(k)
+            result[key_str] = serialize_value(v, max_depth, current_depth + 1)
         return result
     
     # Handle custom objects (like ListNode, TreeNode)
@@ -225,8 +238,9 @@ def serialize_value(value, max_depth=5, current_depth=0):
 
 def run_with_trace(code):
     """Execute code with tracing enabled."""
-    global execution_steps
+    global execution_steps, call_stack_depth
     execution_steps = []
+    call_stack_depth = 0
     
     try:
         # Create a fresh namespace for each execution
@@ -246,6 +260,31 @@ def run_with_trace(code):
         
         # Disable tracing
         sys.settrace(None)
+        
+        # Post-process: shift variable states forward by one step
+        # This makes each step show the state AFTER the line executed, not before
+        if len(execution_steps) > 1:
+            for i in range(len(execution_steps) - 1):
+                # Copy variables from next step to current step
+                execution_steps[i]["variables"] = execution_steps[i + 1]["variables"]
+            
+            # For the last step, capture the final state from exec_globals
+            final_variables = []
+            for var_name, value in exec_globals.items():
+                if var_name.startswith('__') or var_name in TRACER_VARS:
+                    continue
+                if type(value).__name__ == 'module':
+                    continue
+                
+                var_info = {
+                    "scope_id": execution_steps[-1]["scope_id"],
+                    "var_name": var_name,
+                    "type": type(value).__name__,
+                    "value": serialize_value(value)
+                }
+                final_variables.append(var_info)
+            
+            execution_steps[-1]["variables"] = final_variables
         
         return {
             "status": "success",
