@@ -56,8 +56,8 @@ function buildFlowGraph(root: TreeNode | null): {
         targetPosition: Position.Top,
         style: {
           background:
-            "linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(168, 85, 247, 0.1))",
-          border: "2px solid rgba(59, 130, 246, 0.3)",
+            "linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(168, 85, 247, 0.15))",
+          border: "2px solid rgba(59, 130, 246, 0.4)",
           borderRadius: "50%",
           width: 50,
           height: 50,
@@ -66,6 +66,8 @@ function buildFlowGraph(root: TreeNode | null): {
           justifyContent: "center",
           fontSize: "14px",
           fontWeight: "bold",
+          color: "#ffffff",
+          textShadow: "0 1px 2px rgba(0, 0, 0, 0.3)",
         },
       });
     });
@@ -123,7 +125,7 @@ export function TreeVisualizer({ data, variableName }: TreeVisualizerProps) {
           nodes={flowData.nodes}
           edges={flowData.edges}
           fitView
-          attributionPosition="bottom-left"
+          proOptions={{ hideAttribution: true }}
           nodesDraggable={false}
           nodesConnectable={false}
           elementsSelectable={false}

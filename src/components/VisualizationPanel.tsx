@@ -11,6 +11,7 @@ import { TreeVisualizer } from "./visualizers/TreeVisualizer";
 import { ListVisualizer } from "./visualizers/ListVisualizer";
 import { DictVisualizer } from "./visualizers/DictVisualizer";
 import { PrimitiveVisualizer } from "./visualizers/PrimitiveVisualizer";
+import { GraphVisualizer } from "./visualizers/GraphVisualizer";
 
 export function VisualizationPanel() {
   const steps = useExecutionStore((state) => state.steps);
@@ -145,6 +146,12 @@ export function VisualizationPanel() {
                       )}
                       {structureType === "dict" && (
                         <DictVisualizer
+                          data={vizData}
+                          variableName={variable.var_name}
+                        />
+                      )}
+                      {structureType === "graph" && (
+                        <GraphVisualizer
                           data={vizData}
                           variableName={variable.var_name}
                         />
