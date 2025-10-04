@@ -11,17 +11,24 @@ interface LinkedListVisualizerProps {
     nodes: LinkedListNode[];
   };
   variableName: string;
+  dataType: string;
 }
 
 export function LinkedListVisualizer({
   data,
   variableName,
+  dataType,
 }: LinkedListVisualizerProps) {
   if (!data.nodes || data.nodes.length === 0) {
     return (
       <div className="space-y-2">
-        <div className="text-sm font-medium text-muted-foreground">
-          {variableName}
+        <div className="flex items-center gap-2">
+          <div className="text-sm font-medium text-muted-foreground">
+            {variableName}
+          </div>
+          <span className="px-2 py-0.5 text-xs font-mono bg-blue-500/10 text-blue-500 border border-blue-500/20 rounded">
+            {dataType}
+          </span>
         </div>
         <div className="text-sm text-muted-foreground">Empty linked list</div>
       </div>
@@ -30,8 +37,13 @@ export function LinkedListVisualizer({
 
   return (
     <div className="space-y-2">
-      <div className="text-sm font-medium text-muted-foreground">
-        {variableName}
+      <div className="flex items-center gap-2">
+        <div className="text-sm font-medium text-muted-foreground">
+          {variableName}
+        </div>
+        <span className="px-2 py-0.5 text-xs font-mono bg-blue-500/10 text-blue-500 border border-blue-500/20 rounded">
+          {dataType}
+        </span>
       </div>
       <div className="flex items-center gap-2 overflow-x-auto pb-4">
         {data.nodes.map((node, idx) => (

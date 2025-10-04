@@ -130,30 +130,35 @@ export function VisualizationPanel() {
                         <LinkedListVisualizer
                           data={vizData}
                           variableName={variable.var_name}
+                          dataType={variable.type}
                         />
                       )}
                       {structureType === "tree" && (
                         <TreeVisualizer
                           data={vizData}
                           variableName={variable.var_name}
+                          dataType={variable.type}
                         />
                       )}
                       {structureType === "list" && (
                         <ListVisualizer
                           data={vizData}
                           variableName={variable.var_name}
+                          dataType={variable.type}
                         />
                       )}
                       {structureType === "dict" && (
                         <DictVisualizer
                           data={vizData}
                           variableName={variable.var_name}
+                          dataType={variable.type}
                         />
                       )}
                       {structureType === "graph" && (
                         <GraphVisualizer
                           data={vizData}
                           variableName={variable.var_name}
+                          dataType={variable.type}
                         />
                       )}
                       {structureType === "unknown" && (

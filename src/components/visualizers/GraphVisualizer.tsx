@@ -19,6 +19,7 @@ interface GraphVisualizerProps {
     edges: GraphEdge[];
   };
   variableName: string;
+  dataType: string;
 }
 
 function buildFlowGraph(
@@ -84,7 +85,11 @@ function buildFlowGraph(
   return { nodes, edges };
 }
 
-export function GraphVisualizer({ data, variableName }: GraphVisualizerProps) {
+export function GraphVisualizer({
+  data,
+  variableName,
+  dataType,
+}: GraphVisualizerProps) {
   const [flowData, setFlowData] = useState<{ nodes: Node[]; edges: Edge[] }>({
     nodes: [],
     edges: [],
@@ -100,8 +105,13 @@ export function GraphVisualizer({ data, variableName }: GraphVisualizerProps) {
   if (!data.nodes || data.nodes.length === 0) {
     return (
       <div className="space-y-2">
-        <div className="text-sm font-medium text-muted-foreground">
-          {variableName}
+        <div className="flex items-center gap-2">
+          <div className="text-sm font-medium text-muted-foreground">
+            {variableName}
+          </div>
+          <span className="px-2 py-0.5 text-xs font-mono bg-blue-500/10 text-blue-500 border border-blue-500/20 rounded">
+            {dataType}
+          </span>
         </div>
         <div className="text-sm text-muted-foreground">Empty graph</div>
       </div>
@@ -110,8 +120,13 @@ export function GraphVisualizer({ data, variableName }: GraphVisualizerProps) {
 
   return (
     <div className="space-y-2">
-      <div className="text-sm font-medium text-muted-foreground">
-        {variableName}
+      <div className="flex items-center gap-2">
+        <div className="text-sm font-medium text-muted-foreground">
+          {variableName}
+        </div>
+        <span className="px-2 py-0.5 text-xs font-mono bg-blue-500/10 text-blue-500 border border-blue-500/20 rounded">
+          {dataType}
+        </span>
       </div>
       <Card className="h-[400px] w-full bg-background/50">
         <ReactFlow

@@ -3,6 +3,7 @@ interface ListVisualizerProps {
     items: Array<{ index: number; value: any }>;
   };
   variableName: string;
+  dataType: string;
 }
 
 function is2DMatrix(items: Array<{ index: number; value: any }>): boolean {
@@ -19,12 +20,21 @@ function is2DMatrix(items: Array<{ index: number; value: any }>): boolean {
   );
 }
 
-export function ListVisualizer({ data, variableName }: ListVisualizerProps) {
+export function ListVisualizer({
+  data,
+  variableName,
+  dataType,
+}: ListVisualizerProps) {
   if (!data.items || data.items.length === 0) {
     return (
       <div className="space-y-2">
-        <div className="text-sm font-medium text-muted-foreground">
-          {variableName}
+        <div className="flex items-center gap-2">
+          <div className="text-sm font-medium text-muted-foreground">
+            {variableName}
+          </div>
+          <span className="px-2 py-0.5 text-xs font-mono bg-blue-500/10 text-blue-500 border border-blue-500/20 rounded">
+            {dataType}
+          </span>
         </div>
         <div className="text-sm text-muted-foreground">Empty list</div>
       </div>
@@ -39,8 +49,13 @@ export function ListVisualizer({ data, variableName }: ListVisualizerProps) {
 
     return (
       <div className="space-y-2">
-        <div className="text-sm font-medium text-muted-foreground">
-          {variableName} ({rows} × {cols})
+        <div className="flex items-center gap-2">
+          <div className="text-sm font-medium text-muted-foreground">
+            {variableName} ({rows} × {cols})
+          </div>
+          <span className="px-2 py-0.5 text-xs font-mono bg-blue-500/10 text-blue-500 border border-blue-500/20 rounded">
+            {dataType}
+          </span>
         </div>
         <div className="inline-block">
           <div className="flex">
@@ -95,8 +110,13 @@ export function ListVisualizer({ data, variableName }: ListVisualizerProps) {
   // Regular 1D list
   return (
     <div className="space-y-2">
-      <div className="text-sm font-medium text-muted-foreground">
-        {variableName}
+      <div className="flex items-center gap-2">
+        <div className="text-sm font-medium text-muted-foreground">
+          {variableName}
+        </div>
+        <span className="px-2 py-0.5 text-xs font-mono bg-blue-500/10 text-blue-500 border border-blue-500/20 rounded">
+          {dataType}
+        </span>
       </div>
       <div className="inline-block">
         {/* Indices */}
