@@ -290,6 +290,7 @@ const Index = () => {
   const canStepBack = currentStep > 0;
   const canStepForward = currentStep < steps.length - 1;
   const currentLine = steps[currentStep]?.line;
+  const isInLoop = steps[currentStep]?.in_loop || false;
 
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -306,6 +307,7 @@ const Index = () => {
         isRunning={isRunning}
         canStepBack={canStepBack}
         canStepForward={canStepForward}
+        isInLoop={isInLoop}
       />
 
       <ResizablePanelGroup direction="horizontal" className="flex-1">

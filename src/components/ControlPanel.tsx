@@ -42,6 +42,7 @@ interface ControlPanelProps {
   isRunning: boolean;
   canStepBack: boolean;
   canStepForward: boolean;
+  isInLoop: boolean;
 }
 
 export function ControlPanel({
@@ -57,6 +58,7 @@ export function ControlPanel({
   isRunning,
   canStepBack,
   canStepForward,
+  isInLoop,
 }: ControlPanelProps) {
   return (
     <TooltipProvider>
@@ -154,14 +156,18 @@ export function ControlPanel({
             <TooltipTrigger asChild>
               <Button
                 onClick={onStepToNextIteration}
-                disabled={!canStepForward || isRunning}
+                disabled={!canStepForward || isRunning || !isInLoop}
                 variant="secondary"
                 size="sm"
               >
                 <Repeat className="w-4 h-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Step to Next Iteration</TooltipContent>
+            <TooltipContent>
+              {isInLoop
+                ? "Step to Next Iteration"
+                : "Step to Next Iteration (only available in loops)"}
+            </TooltipContent>
           </Tooltip>
         </div>
 

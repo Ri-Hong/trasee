@@ -15,6 +15,7 @@ export interface ExecutionStep {
   scope_id?: number;
   function_name?: string;
   depth?: number;
+  in_loop?: boolean;
 }
 
 export interface LogEntry {
