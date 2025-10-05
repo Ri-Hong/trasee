@@ -211,10 +211,130 @@ export function VisualizationPanel() {
                         // Only show structures that are visible at or before current step
                         if (structure.firstSeenStep > currentStep) return null;
 
+                        // Skip structures for traversal pointers (they should appear as labels on other structures)
+                        const isTraversalPointer = ["curr", "current"].includes(
+                          structure.rootVarName.toLowerCase()
+                        );
+                        if (isTraversalPointer) return null;
+
+                        // Check if this is a builder variable (needed for traversal pointer logic)
+                        const isBuilderVar = [
+                          "dummy",
+                          "head",
+                          "result",
+                          "ans",
+                          "output",
+                        ].includes(structure.rootVarName.toLowerCase());
+
                         // Find which variables point into this structure
-                        const pointersToStructure = currentPointers.filter(
+                        let pointersToStructure = currentPointers.filter(
                           (p) => p.structureId === structId
                         );
+
+                        // Also check ALL variables to see if they point into this structure
+                        // This catches traversal pointers like curr that might not be tracked correctly
+                        if (isBuilderVar) {
+                          console.log(
+                            `[${structure.rootVarName}] Checking for traversal pointers`
+                          );
+                          console.log(
+                            "Variables:",
+                            variables.map((v) => ({
+                              name: v.var_name,
+                              hasNext: v.value?.__attrs__?.next !== undefined,
+                            }))
+                          );
+                          console.log(
+                            "Existing pointers:",
+                            pointersToStructure.map((p) => p.varName)
+                          );
+
+                          variables.forEach((variable) => {
+                            // Skip if already tracked
+                            const alreadyTracked = pointersToStructure.some(
+                              (p) => p.varName === variable.var_name
+                            );
+                            if (alreadyTracked) return;
+
+                            // Skip if not a linked list node
+                            if (
+                              !variable.value ||
+                              typeof variable.value !== "object" ||
+                              !variable.value.__attrs__ ||
+                              variable.value.__attrs__.next === undefined
+                            ) {
+                              return;
+                            }
+
+                            console.log(`  Checking ${variable.var_name}...`);
+
+                            // Get the current structure's node list
+                            let currentStructureVar = variables.find(
+                              (v) => v.var_name === structure.rootVarName
+                            );
+
+                            if (!currentStructureVar) {
+                              for (let i = currentStep - 1; i >= 0; i--) {
+                                const prevStepVars = steps[i]?.variables || [];
+                                currentStructureVar = prevStepVars.find(
+                                  (v) => v.var_name === structure.rootVarName
+                                );
+                                if (currentStructureVar) break;
+                              }
+                            }
+
+                            if (
+                              currentStructureVar &&
+                              currentStructureVar.value
+                            ) {
+                              // Walk through the structure to find matching node
+                              let structNode = currentStructureVar.value;
+                              let nodeIndex = 0;
+
+                              while (
+                                structNode &&
+                                typeof structNode === "object" &&
+                                structNode.__attrs__
+                              ) {
+                                const structVal =
+                                  structNode.__attrs__.val ??
+                                  structNode.__attrs__.value ??
+                                  structNode.__attrs__.data;
+                                const varVal =
+                                  variable.value.__attrs__?.val ??
+                                  variable.value.__attrs__?.value ??
+                                  variable.value.__attrs__?.data;
+
+                                if (structVal === varVal) {
+                                  // Found matching node!
+                                  const nodeId = `${structure.rootVarName.charAt(
+                                    0
+                                  )}_${nodeIndex}`;
+                                  console.log(
+                                    `    MATCH! ${variable.var_name} points to node ${nodeId} (value: ${structVal})`
+                                  );
+                                  pointersToStructure.push({
+                                    varName: variable.var_name,
+                                    structureId: structId,
+                                    nodeId: nodeId,
+                                  });
+                                  break;
+                                }
+
+                                structNode = structNode.__attrs__.next;
+                                nodeIndex++;
+                                if (nodeIndex > 100) break;
+                              }
+                            }
+                          });
+
+                          console.log(
+                            "Final pointers after checking:",
+                            pointersToStructure.map(
+                              (p) => `${p.varName} -> ${p.nodeId}`
+                            )
+                          );
+                        }
 
                         // Build highlighted nodes and labels
                         const highlightedNodes = pointersToStructure
@@ -231,30 +351,84 @@ export function VisualizationPanel() {
 
                         // Prepare visualization data from the global structure
                         if (structure.structureType === "linked_list") {
-                          const nodes = Array.from(structure.nodes.entries())
-                            .map(([nodeId, nodeValue]) => {
-                              const val =
-                                nodeValue.__attrs__?.val ??
-                                nodeValue.__attrs__?.value ??
-                                nodeValue.__attrs__?.data ??
-                                "?";
-                              return { id: nodeId, value: val };
-                            })
-                            .sort((a, b) => {
-                              // Sort by node index (extract number from id like "n_0", "n_1")
-                              const aIdx = parseInt(
-                                a.id.split("_").pop() || "0"
+                          let nodesToRender;
+
+                          if (isBuilderVar) {
+                            // For builder variables, show the CURRENT state at this step
+                            // Look for the variable in current step, or walk backwards to find most recent state
+                            let currentVariable = variables.find(
+                              (v) => v.var_name === structure.rootVarName
+                            );
+
+                            // If not in current step (e.g., we're in a nested scope), find the most recent state
+                            if (!currentVariable) {
+                              for (let i = currentStep - 1; i >= 0; i--) {
+                                const prevStepVars = steps[i]?.variables || [];
+                                currentVariable = prevStepVars.find(
+                                  (v) => v.var_name === structure.rootVarName
+                                );
+                                if (currentVariable) break;
+                              }
+                            }
+
+                            if (currentVariable && currentVariable.value) {
+                              // Get the linked list from the current variable value
+                              const vizData = prepareVisualizationData(
+                                currentVariable,
+                                "linked_list"
                               );
-                              const bIdx = parseInt(
-                                b.id.split("_").pop() || "0"
-                              );
-                              return aIdx - bIdx;
-                            });
+                              nodesToRender = vizData.nodes;
+                            } else {
+                              // Fallback to structure nodes
+                              nodesToRender = Array.from(
+                                structure.nodes.entries()
+                              )
+                                .map(([nodeId, nodeValue]) => {
+                                  const val =
+                                    nodeValue.__attrs__?.val ??
+                                    nodeValue.__attrs__?.value ??
+                                    nodeValue.__attrs__?.data ??
+                                    "?";
+                                  return { id: nodeId, value: val };
+                                })
+                                .sort((a, b) => {
+                                  const aIdx = parseInt(
+                                    a.id.split("_").pop() || "0"
+                                  );
+                                  const bIdx = parseInt(
+                                    b.id.split("_").pop() || "0"
+                                  );
+                                  return aIdx - bIdx;
+                                });
+                            }
+                          } else {
+                            // For input/traversal variables, show the FULL original structure
+                            nodesToRender = Array.from(
+                              structure.nodes.entries()
+                            )
+                              .map(([nodeId, nodeValue]) => {
+                                const val =
+                                  nodeValue.__attrs__?.val ??
+                                  nodeValue.__attrs__?.value ??
+                                  nodeValue.__attrs__?.data ??
+                                  "?";
+                                return { id: nodeId, value: val };
+                              })
+                              .sort((a, b) => {
+                                const aIdx = parseInt(
+                                  a.id.split("_").pop() || "0"
+                                );
+                                const bIdx = parseInt(
+                                  b.id.split("_").pop() || "0"
+                                );
+                                return aIdx - bIdx;
+                              });
+                          }
 
                           return (
                             <div key={structId}>
                               <LinkedListVisualizer
-                                data={{ nodes }}
+                                data={{ nodes: nodesToRender }}
                                 variableName={structure.rootVarName}
                                 dataType="linked list"
                                 highlightedNodes={highlightedNodes}
