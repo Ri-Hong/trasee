@@ -77,8 +77,11 @@ const Index = () => {
           "Initializing Pyodide (this may take a moment on first run)...",
       });
 
-      // Execute with tracing
-      const result = await executePythonWithTrace(code);
+      // Execute with tracing (with artificial 1s delay for better UX)
+      const [result] = await Promise.all([
+        executePythonWithTrace(code),
+        new Promise((resolve) => setTimeout(resolve, 1000)),
+      ]);
 
       // Log static analysis
       addLog({
@@ -207,7 +210,11 @@ const Index = () => {
       try {
         addLog({ level: "info", message: "🚀 Starting execution..." });
 
-        const result = await executePythonWithTrace(exampleCode);
+        // Execute with tracing (with artificial 1s delay for better UX)
+        const [result] = await Promise.all([
+          executePythonWithTrace(exampleCode),
+          new Promise((resolve) => setTimeout(resolve, 1000)),
+        ]);
 
         addLog({
           level: "success",
