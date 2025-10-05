@@ -395,17 +395,19 @@ def serialize_value(value, max_depth=5, current_depth=0):
     # Handle custom objects (like ListNode, TreeNode)
     if hasattr(value, '__dict__'):
         obj_dict = {}
-        # Get object attributes
-        for attr in dir(value):
+        class_name = type(value).__name__
+
+        # Get object attributes from __dict__ (instance attributes)
+        for attr, attr_value in value.__dict__.items():
             if attr.startswith('_'):
                 continue
             try:
-                attr_value = getattr(value, attr)
                 if not callable(attr_value):
                     obj_dict[attr] = serialize_value(attr_value, max_depth, current_depth + 1)
-            except:
+            except Exception:
                 pass
-        return {"__class__": type(value).__name__, "__attrs__": obj_dict}
+
+        return {"__class__": class_name, "__attrs__": obj_dict}
     
     # Fallback
     return str(value)

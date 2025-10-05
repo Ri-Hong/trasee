@@ -1,12 +1,13 @@
 import { Card } from "@/components/ui/card";
-import ReactFlow, { Node, Edge, Position } from "reactflow";
-import "reactflow/dist/style.css";
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 
 interface TreeNode {
   id: string;
   value: any;
   children: TreeNode[];
+  isBinaryTree?: boolean;
+  left?: TreeNode | null;
+  right?: TreeNode | null;
 }
 
 interface TreeVisualizerProps {
@@ -19,18 +20,44 @@ interface TreeVisualizerProps {
   nodeLabels?: Map<string, string[]>; // Map of node ID to variable names pointing to it
 }
 
-function buildFlowGraph(
+interface PositionedNode {
+  id: string;
+  value: any;
+  x: number;
+  y: number;
+  isHighlighted: boolean;
+  labels: string[];
+}
+
+interface TreeEdge {
+  fromX: number;
+  fromY: number;
+  toX: number;
+  toY: number;
+}
+
+function buildTreeLayout(
   root: TreeNode | null,
   highlightedNodes: string[] = [],
   nodeLabels?: Map<string, string[]>
 ): {
-  nodes: Node[];
-  edges: Edge[];
+  nodes: PositionedNode[];
+  edges: TreeEdge[];
+  bounds: { minX: number; maxX: number; minY: number; maxY: number };
 } {
-  if (!root) return { nodes: [], edges: [] };
+  if (!root)
+    return {
+      nodes: [],
+      edges: [],
+      bounds: { minX: 0, maxX: 0, minY: 0, maxY: 0 },
+    };
 
-  const nodes: Node[] = [];
-  const edges: Edge[] = [];
+  const nodes: PositionedNode[] = [];
+  const edges: TreeEdge[] = [];
+  let minX = 0,
+    maxX = 0,
+    minY = 0,
+    maxY = 0;
 
   // Calculate the depth of the tree
   function getTreeDepth(node: TreeNode | null): number {
@@ -49,64 +76,71 @@ function buildFlowGraph(
     const isHighlighted = highlightedNodes.includes(node.id);
     const labels = nodeLabels?.get(node.id) || [];
 
-    // Build label display
-    let labelContent = String(node.value);
-    if (labels.length > 0) {
-      labelContent = `${labels.join(", ")}\n${node.value}`;
-    }
+    // Track bounds
+    minX = Math.min(minX, x);
+    maxX = Math.max(maxX, x);
+    minY = Math.min(minY, y);
+    maxY = Math.max(maxY, y);
 
     // Add current node
     nodes.push({
       id: node.id,
-      position: { x, y },
-      data: { label: labelContent },
-      type: "default",
-      sourcePosition: Position.Bottom,
-      targetPosition: Position.Top,
-      style: {
-        background: isHighlighted
-          ? "linear-gradient(135deg, rgba(59, 130, 246, 1), rgba(168, 85, 247, 1))"
-          : "linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(168, 85, 247, 0.15))",
-        border: isHighlighted
-          ? "4px solid rgba(250, 204, 21, 1)"
-          : "2px solid rgba(59, 130, 246, 0.4)",
-        borderRadius: "50%",
-        width: 50,
-        height: 50,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: "14px",
-        fontWeight: "bold",
-        color: "#ffffff",
-        textShadow: "0 1px 2px rgba(0, 0, 0, 0.3)",
-        boxShadow: isHighlighted
-          ? "0 0 20px rgba(250, 204, 21, 0.5)"
-          : undefined,
-        transform: isHighlighted ? "scale(1.1)" : undefined,
-      },
+      value: node.value,
+      x,
+      y,
+      isHighlighted,
+      labels,
     });
 
     // Position children with spacing that decreases with depth
     if (node.children.length > 0) {
       const childSpacing = horizontalSpacing / Math.pow(2, depth);
 
-      node.children.forEach((child, index) => {
-        // Calculate child position relative to parent
-        const offset = (index - (node.children.length - 1) / 2) * childSpacing;
-        const childX = x + offset;
+      // Special handling for binary trees
+      if (node.isBinaryTree) {
+        // Left child
+        if (node.left) {
+          const leftX = x - childSpacing / 2;
+          const childY = y + 100;
+          edges.push({
+            fromX: x,
+            fromY: y,
+            toX: leftX,
+            toY: childY,
+          });
+          layoutTree(node.left, leftX, childY, horizontalSpacing, depth + 1);
+        }
 
-        // Add edge from parent to child
-        edges.push({
-          id: `${node.id}-${child.id}`,
-          source: node.id,
-          target: child.id,
-          style: { stroke: "rgba(59, 130, 246, 0.5)", strokeWidth: 2 },
+        // Right child
+        if (node.right) {
+          const rightX = x + childSpacing / 2;
+          const childY = y + 100;
+          edges.push({
+            fromX: x,
+            fromY: y,
+            toX: rightX,
+            toY: childY,
+          });
+          layoutTree(node.right, rightX, childY, horizontalSpacing, depth + 1);
+        }
+      } else {
+        // N-ary tree: distribute children symmetrically
+        node.children.forEach((child, index) => {
+          const offset =
+            (index - (node.children.length - 1) / 2) * childSpacing;
+          const childX = x + offset;
+          const childY = y + 100;
+
+          edges.push({
+            fromX: x,
+            fromY: y,
+            toX: childX,
+            toY: childY,
+          });
+
+          layoutTree(child, childX, childY, horizontalSpacing, depth + 1);
         });
-
-        // Recursively layout child subtree
-        layoutTree(child, childX, y + 100, horizontalSpacing, depth + 1);
-      });
+      }
     }
   }
 
@@ -115,7 +149,7 @@ function buildFlowGraph(
   const horizontalSpacing = 80 * Math.pow(2, Math.min(treeDepth, 5));
   layoutTree(root, 0, 0, horizontalSpacing, 0);
 
-  return { nodes, edges };
+  return { nodes, edges, bounds: { minX, maxX, minY, maxY } };
 }
 
 export function TreeVisualizer({
@@ -125,16 +159,8 @@ export function TreeVisualizer({
   highlightedNodes = [],
   nodeLabels,
 }: TreeVisualizerProps) {
-  const [flowData, setFlowData] = useState<{ nodes: Node[]; edges: Edge[] }>({
-    nodes: [],
-    edges: [],
-  });
-
-  useEffect(() => {
-    if (data.root) {
-      const graph = buildFlowGraph(data.root, highlightedNodes, nodeLabels);
-      setFlowData(graph);
-    }
+  const layout = useMemo(() => {
+    return buildTreeLayout(data.root, highlightedNodes, nodeLabels);
   }, [data, highlightedNodes, nodeLabels]);
 
   if (!data.root) {
@@ -153,6 +179,43 @@ export function TreeVisualizer({
     );
   }
 
+  const { nodes, edges, bounds } = layout;
+  const nodeRadius = 25;
+  const padding = 50;
+
+  // Calculate SVG viewport
+  const viewBoxWidth = bounds.maxX - bounds.minX + 2 * padding;
+  const viewBoxHeight = bounds.maxY - bounds.minY + 2 * padding;
+  const offsetX = -bounds.minX + padding;
+  const offsetY = -bounds.minY + padding;
+
+  // Helper function to calculate edge endpoints that stop at circle edge
+  const calculateEdgePoints = (edge: TreeEdge) => {
+    const x1 = edge.fromX + offsetX;
+    const y1 = edge.fromY + offsetY;
+    const x2 = edge.toX + offsetX;
+    const y2 = edge.toY + offsetY;
+
+    // Calculate direction vector
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const length = Math.sqrt(dx * dx + dy * dy);
+
+    if (length === 0) return { x1, y1, x2, y2 };
+
+    // Normalize direction
+    const nx = dx / length;
+    const ny = dy / length;
+
+    // Shorten the line by the radius on both ends
+    return {
+      x1: x1 + nx * nodeRadius,
+      y1: y1 + ny * nodeRadius,
+      x2: x2 - nx * nodeRadius,
+      y2: y2 - ny * nodeRadius,
+    };
+  };
+
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
@@ -163,19 +226,120 @@ export function TreeVisualizer({
           {dataType}
         </span>
       </div>
-      <Card className="h-[300px] w-full bg-background/50">
-        <ReactFlow
-          nodes={flowData.nodes}
-          edges={flowData.edges}
-          fitView
-          proOptions={{ hideAttribution: true }}
-          nodesDraggable={false}
-          nodesConnectable={false}
-          elementsSelectable={false}
-          panOnDrag={false}
-          zoomOnScroll={false}
-          preventScrolling={false}
-        />
+      <Card className="w-full bg-background/50">
+        <svg
+          className="w-full h-[300px]"
+          viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
+          preserveAspectRatio="xMidYMid meet"
+        >
+          {/* Render edges */}
+          {edges.map((edge, idx) => {
+            const points = calculateEdgePoints(edge);
+            return (
+              <line
+                key={`edge-${idx}`}
+                x1={points.x1}
+                y1={points.y1}
+                x2={points.x2}
+                y2={points.y2}
+                stroke="rgba(59, 130, 246, 0.5)"
+                strokeWidth="2"
+              />
+            );
+          })}
+
+          {/* Render nodes */}
+          {nodes.map((node) => {
+            const cx = node.x + offsetX;
+            const cy = node.y + offsetY;
+
+            return (
+              <g key={node.id}>
+                {/* Highlight glow */}
+                {node.isHighlighted && (
+                  <circle
+                    cx={cx}
+                    cy={cy}
+                    r={nodeRadius + 4}
+                    fill="none"
+                    stroke="rgba(250, 204, 21, 0.5)"
+                    strokeWidth="4"
+                  />
+                )}
+
+                {/* Node circle */}
+                <circle
+                  cx={cx}
+                  cy={cy}
+                  r={nodeRadius}
+                  fill={
+                    node.isHighlighted
+                      ? "url(#highlightGradient)"
+                      : "url(#normalGradient)"
+                  }
+                  stroke={
+                    node.isHighlighted
+                      ? "rgba(250, 204, 21, 1)"
+                      : "rgba(59, 130, 246, 0.4)"
+                  }
+                  strokeWidth={node.isHighlighted ? "3" : "2"}
+                />
+
+                {/* Node label (variable names) */}
+                {node.labels.length > 0 && (
+                  <text
+                    x={cx}
+                    y={cy - nodeRadius - 8}
+                    fill="rgba(250, 204, 21, 1)"
+                    fontSize="10"
+                    fontWeight="bold"
+                    textAnchor="middle"
+                  >
+                    {node.labels.join(", ")}
+                  </text>
+                )}
+
+                {/* Node value */}
+                <text
+                  x={cx}
+                  y={cy}
+                  fill="#ffffff"
+                  fontSize="14"
+                  fontWeight="bold"
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  style={{ textShadow: "0 1px 2px rgba(0, 0, 0, 0.3)" }}
+                >
+                  {String(node.value)}
+                </text>
+              </g>
+            );
+          })}
+
+          {/* Gradients */}
+          <defs>
+            <linearGradient
+              id="highlightGradient"
+              x1="0%"
+              y1="0%"
+              x2="100%"
+              y2="100%"
+            >
+              <stop offset="0%" stopColor="rgba(59, 130, 246, 1)" />
+              <stop offset="100%" stopColor="rgba(168, 85, 247, 1)" />
+            </linearGradient>
+            <linearGradient
+              id="normalGradient"
+              x1="0%"
+              y1="0%"
+              x2="100%"
+              y2="100%"
+            >
+              <stop offset="0%" stopColor="rgba(59, 130, 246, 0.15)" />
+              <stop offset="100%" stopColor="rgba(168, 85, 247, 0.15)" />
+            </linearGradient>
+          </defs>
+        </svg>
       </Card>
     </div>
   );

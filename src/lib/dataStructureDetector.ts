@@ -162,15 +162,25 @@ function prepareTreeData(value: any) {
       children: [],
     };
 
-    // Binary tree
+    // Binary tree - preserve left/right information
     if ("left" in node.__attrs__ || "right" in node.__attrs__) {
+      treeNode.isBinaryTree = true;
+      treeNode.left = null;
+      treeNode.right = null;
+
       if (node.__attrs__.left) {
         const leftChild = buildTree(node.__attrs__.left, `${id}_L`);
-        if (leftChild) treeNode.children.push(leftChild);
+        if (leftChild) {
+          treeNode.left = leftChild;
+          treeNode.children.push(leftChild);
+        }
       }
       if (node.__attrs__.right) {
         const rightChild = buildTree(node.__attrs__.right, `${id}_R`);
-        if (rightChild) treeNode.children.push(rightChild);
+        if (rightChild) {
+          treeNode.right = rightChild;
+          treeNode.children.push(rightChild);
+        }
       }
     }
     // N-ary tree
