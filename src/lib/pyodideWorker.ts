@@ -84,25 +84,85 @@ def analyze_loops(code):
         tree = ast.parse(code)
         loop_info = {}
         
+        def get_iter_info(node):
+            """Extract iterator information from for loop."""
+            iter_name = None
+            is_range = False
+            is_enumerate = False
+            
+            # Check for range(len(x)) pattern
+            if isinstance(node.iter, ast.Call):
+                if isinstance(node.iter.func, ast.Name) and node.iter.func.id == 'range':
+                    is_range = True
+                    # Check if it's range(len(something))
+                    if node.iter.args and isinstance(node.iter.args[0], ast.Call):
+                        if isinstance(node.iter.args[0].func, ast.Name) and node.iter.args[0].func.id == 'len':
+                            if node.iter.args[0].args and isinstance(node.iter.args[0].args[0], ast.Name):
+                                iter_name = node.iter.args[0].args[0].id
+                elif isinstance(node.iter.func, ast.Name) and node.iter.func.id == 'enumerate':
+                    is_enumerate = True
+                    if node.iter.args and isinstance(node.iter.args[0], ast.Name):
+                        iter_name = node.iter.args[0].id
+            # Direct iteration over a variable
+            elif isinstance(node.iter, ast.Name):
+                iter_name = node.iter.id
+            
+            return iter_name, is_range, is_enumerate
+        
+        def collect_line_numbers(node):
+            """Recursively collect all line numbers in a node's body."""
+            lines = set()
+            if hasattr(node, 'lineno'):
+                lines.add(node.lineno)
+            for child in ast.walk(node):
+                if hasattr(child, 'lineno'):
+                    lines.add(child.lineno)
+            return lines
+        
         def visit_loop(node):
             # For loops
             if isinstance(node, ast.For):
-                # Get all lines in the loop body
-                for child in ast.walk(node):
-                    if hasattr(child, 'lineno'):
-                        # Store both the line number and iteration info
-                        loop_info[child.lineno] = {
-                            'type': 'for',
-                            'target': node.target.id if isinstance(node.target, ast.Name) else None,
-                            'iter': node.iter.id if isinstance(node.iter, ast.Name) else None
-                        }
+                iter_name, is_range, is_enumerate = get_iter_info(node)
+                
+                # Handle target - could be a simple name or tuple unpacking
+                target_name = None
+                target_names = []
+                if isinstance(node.target, ast.Name):
+                    target_name = node.target.id
+                    target_names = [target_name]
+                elif isinstance(node.target, ast.Tuple):
+                    # Tuple unpacking like: for i, num in enumerate(...)
+                    target_names = [elt.id for elt in node.target.elts if isinstance(elt, ast.Name)]
+                    if target_names:
+                        target_name = target_names[0]  # Use first element (usually the index)
+                
+                # Debug print
+                print(f"LOOP ANALYSIS: target={target_name}, targets={target_names}, iter={iter_name}, is_range={is_range}, is_enum={is_enumerate}")
+                
+                # Get all line numbers in the loop body (not including nested structures)
+                lines = set()
+                for stmt in node.body:
+                    lines.update(collect_line_numbers(stmt))
+                
+                # Store loop info for all lines in the loop body
+                for lineno in lines:
+                    loop_info[lineno] = {
+                        'type': 'for',
+                        'target': target_name,
+                        'target_names': target_names,
+                        'iter': iter_name,
+                        'is_range': is_range,
+                        'is_enumerate': is_enumerate
+                    }
             # While loops
             elif isinstance(node, ast.While):
-                for child in ast.walk(node):
-                    if hasattr(child, 'lineno'):
-                        loop_info[child.lineno] = {
-                            'type': 'while'
-                        }
+                lines = set()
+                for stmt in node.body:
+                    lines.update(collect_line_numbers(stmt))
+                for lineno in lines:
+                    loop_info[lineno] = {
+                        'type': 'while'
+                    }
         
         for node in ast.walk(tree):
             visit_loop(node)
@@ -178,23 +238,61 @@ def capture_variables(frame):
         lineno = frame.f_lineno
         if lineno in loop_info and loop_info[lineno]['type'] == 'for':
             target = loop_info[lineno]['target']
+            target_names = loop_info[lineno].get('target_names', [])
             iterable = loop_info[lineno]['iter']
-            if target == var_name and iterable in local_vars:
-                # Get the iterable
-                iter_list = local_vars[iterable]
-                if isinstance(iter_list, list):
-                    # Find the index of the current value in the list
-                    try:
-                        index = iter_list.index(value)
-                        # Add a special variable to track the index
+            is_range = loop_info[lineno].get('is_range', False)
+            is_enumerate = loop_info[lineno].get('is_enumerate', False)
+            
+            # Debug: print loop info
+            print(f"DEBUG: var={var_name}, target={target}, targets={target_names}, iter={iterable}, is_range={is_range}, is_enum={is_enumerate}, value={value}, type={type(value).__name__}")
+            
+            # Check if this is the loop variable
+            if target == var_name or var_name in target_names:
+                # Case 1: for i in nums (iterate over list)
+                if iterable and iterable in local_vars and not is_range and not is_enumerate:
+                    iter_list = local_vars[iterable]
+                    if isinstance(iter_list, list):
+                        # Find the index of the current value in the list
+                        try:
+                            index = iter_list.index(value)
+                            # Add a special variable to track the index
+                            variables.append({
+                                "scope_id": scope_id,
+                                "var_name": f"__{var_name}_index",
+                                "type": "int",
+                                "value": index
+                            })
+                            print(f"DEBUG: Added index tracker for {var_name}, index={index}")
+                        except ValueError:
+                            pass
+                
+                # Case 2: for i in range(len(nums)) (iterate over index)
+                # In this case, i IS the index, so just add it directly
+                elif is_range and isinstance(value, int) and iterable:
+                    print(f"DEBUG: Range loop detected, iter={iterable}, value={value}, iterable in local_vars={iterable in local_vars}")
+                    if iterable in local_vars:
+                        # We know which list this is for
                         variables.append({
                             "scope_id": scope_id,
                             "var_name": f"__{var_name}_index",
                             "type": "int",
-                            "value": index
+                            "value": value
                         })
-                    except ValueError:
-                        pass
+                        print(f"DEBUG: Added index tracker for {var_name} (range), index={value}")
+                
+                # Case 3: for i, val in enumerate(nums)
+                # Only the FIRST variable (i) is the index
+                elif is_enumerate and isinstance(value, int) and iterable and var_name == target_names[0]:
+                    print(f"DEBUG: Enumerate loop detected, iter={iterable}, value={value}, var={var_name}")
+                    if iterable in local_vars and isinstance(local_vars[iterable], list):
+                        # This variable (i) is the index itself
+                        variables.append({
+                            "scope_id": scope_id,
+                            "var_name": f"__{var_name}_index",
+                            "type": "int",
+                            "value": value
+                        })
+                        print(f"DEBUG: Added index tracker for {var_name} (enumerate), index={value}")
     
     return variables
 
@@ -235,7 +333,7 @@ def trace_calls(frame, event, arg):
         
         # Record step
         step = {
-            "lineno": lineno,
+            "line": lineno,
             "event": event,
             "variables": variables,
             "scope_id": scope_id,

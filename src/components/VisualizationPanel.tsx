@@ -78,7 +78,7 @@ export function VisualizationPanel() {
             <h3 className="font-semibold text-sm">
               Variables
               <span className="ml-2 text-xs text-muted-foreground">
-                (Step {currentStep + 1}/{steps.length})
+                (Step {currentStep + 1}/{steps.length}, Line {step?.line})
               </span>
             </h3>
             <div className="flex gap-1">
@@ -466,6 +466,15 @@ export function VisualizationPanel() {
                             const highlightedIndices = new Set<number>();
                             const indexLabelsMap = new Map<number, string[]>();
 
+                            console.log(
+                              "List structure:",
+                              structure.rootVarName
+                            );
+                            console.log(
+                              "Current variables:",
+                              variables.map((v) => v.var_name)
+                            );
+
                             variables.forEach((variable) => {
                               // Check if this is an iteration index variable
                               if (
@@ -474,6 +483,14 @@ export function VisualizationPanel() {
                               ) {
                                 const iterVar = variable.var_name.slice(2, -6); // Remove __ prefix and _index suffix
                                 const index = variable.value as number;
+                                console.log(
+                                  "Found index variable:",
+                                  variable.var_name,
+                                  "value:",
+                                  index,
+                                  "for list:",
+                                  structure.rootVarName
+                                );
                                 highlightedIndices.add(index);
 
                                 // Add the iteration variable as a label
@@ -482,6 +499,13 @@ export function VisualizationPanel() {
                                 indexLabelsMap.set(index, labels);
                               }
                             });
+
+                            console.log(
+                              "Highlighted indices for",
+                              structure.rootVarName,
+                              ":",
+                              Array.from(highlightedIndices)
+                            );
 
                             return (
                               <div key={structId}>
