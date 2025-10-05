@@ -4,7 +4,7 @@
 
 Unlike traditional debuggers, Trasee intelligently detects and visualizes common data structures (linked lists, trees, graphs, etc.) as your code executes, making it perfect for understanding LeetCode solutions and algorithm implementations.
 
-![Trasee Demo](./public/trasee.svg)
+![Trasee Demo GIF](./assets/demo.gif)
 
 ## ✨ Features
 
