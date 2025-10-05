@@ -9,7 +9,10 @@ export function VariablesPanel() {
   const currentStep = useExecutionStore((state) => state.currentStep);
 
   const step = steps[currentStep];
-  const variables = step?.variables || [];
+  // Filter out internal __*_index variables used for visualization tracking
+  const variables = (step?.variables || []).filter(
+    (v) => !(v.var_name.startsWith("__") && v.var_name.endsWith("_index"))
+  );
 
   const formatValue = (value: any): string => {
     if (value === null || value === undefined) return "None";

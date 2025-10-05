@@ -53,7 +53,7 @@ export function VisualizationPanel() {
   const variables = step?.variables || [];
   const currentPointers = globalState?.stepPointers.get(currentStep) || [];
 
-  // Filter out only non-visualizable types (functions, modules, etc.)
+  // Filter out only non-visualizable types (functions, modules, etc.) and internal index tracking variables
   const visualizableVars = variables.filter((v) => {
     // Skip internal types
     if (
@@ -65,6 +65,10 @@ export function VisualizationPanel() {
         "builtin_function_or_method",
       ].includes(v.type)
     ) {
+      return false;
+    }
+    // Skip internal __*_index variables used for visualization tracking
+    if (v.var_name.startsWith("__") && v.var_name.endsWith("_index")) {
       return false;
     }
     return true;

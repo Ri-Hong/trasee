@@ -120,7 +120,8 @@ result = invertTree(root)
     code: `def twoSum(nums: list[int], target: int) -> list[int]:
     seen = {}
     
-    for i, num in enumerate(nums):
+    for i in range(len(nums)):
+        num = nums[i]
         complement = target - num
         
         if complement in seen:

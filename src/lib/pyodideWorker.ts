@@ -281,11 +281,11 @@ def capture_variables(frame):
                         print(f"DEBUG: Added index tracker for {var_name} (range), index={value}")
                 
                 # Case 3: for i, val in enumerate(nums)
-                # Only the FIRST variable (i) is the index
+                # Add index tracker for visualization highlighting (will be hidden in Variables panel)
                 elif is_enumerate and isinstance(value, int) and iterable and var_name == target_names[0]:
                     print(f"DEBUG: Enumerate loop detected, iter={iterable}, value={value}, var={var_name}")
                     if iterable in local_vars and isinstance(local_vars[iterable], list):
-                        # This variable (i) is the index itself
+                        # Add index tracker for visualization (hidden from user in Variables panel)
                         variables.append({
                             "scope_id": scope_id,
                             "var_name": f"__{var_name}_index",
