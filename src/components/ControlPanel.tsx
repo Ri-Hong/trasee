@@ -8,6 +8,8 @@ import {
   ArrowUpFromLine,
   HelpCircle,
   Repeat,
+  Globe,
+  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -341,6 +343,93 @@ export function ControlPanel({
                   <p className="ml-4 text-xs">
                     Perfect for skipping the rest of the current iteration and
                     going straight to the next one!
+                  </p>
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <h3 className="font-semibold text-lg mb-2">
+                  Visualization Modes
+                </h3>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Control how data structures are displayed in the visualization
+                  panel
+                </p>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <Eye className="w-5 h-5 mt-0.5 text-gray-500" />
+                    <div>
+                      <p className="font-medium">Scope Mode (Default)</p>
+                      <p className="text-sm text-muted-foreground">
+                        Shows only the variables and data structures{" "}
+                        <strong>currently in scope</strong>. When variables like{" "}
+                        <code className="bg-muted px-1 py-0.5 rounded text-xs">
+                          l1
+                        </code>{" "}
+                        or{" "}
+                        <code className="bg-muted px-1 py-0.5 rounded text-xs">
+                          l2
+                        </code>{" "}
+                        move through a linked list, you'll only see the
+                        remaining nodes from their current position forward.
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1 italic">
+                        Use when: You want to see exactly what each variable can
+                        access at the current moment
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Globe className="w-5 h-5 mt-0.5 text-blue-500" />
+                    <div>
+                      <p className="font-medium">Global Mode</p>
+                      <p className="text-sm text-muted-foreground">
+                        Shows the <strong>entire data structure</strong> from
+                        the beginning. As variables traverse the structure,
+                        they're highlighted with a{" "}
+                        <span className="text-yellow-500 font-semibold">
+                          glowing border
+                        </span>{" "}
+                        and labeled to show which nodes they're currently
+                        pointing to.
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1 italic">
+                        Use when: You want to understand how variables traverse
+                        through a complete data structure (perfect for LeetCode
+                        linked list problems!)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-muted p-3 rounded text-sm mt-3">
+                  <p className="font-medium mb-1">Example: Add Two Numbers</p>
+                  <p className="text-muted-foreground text-xs">
+                    With{" "}
+                    <strong className="text-foreground">
+                      <Eye className="w-3 h-3 inline mr-1" />
+                      Scope Mode
+                    </strong>
+                    : As{" "}
+                    <code className="bg-background px-1 py-0.5 rounded">
+                      l1
+                    </code>{" "}
+                    moves, you only see its remaining nodes.
+                  </p>
+                  <p className="text-muted-foreground text-xs mt-1">
+                    With{" "}
+                    <strong className="text-foreground">
+                      <Globe className="w-3 h-3 inline mr-1" />
+                      Global Mode
+                    </strong>
+                    : You see the entire original linked list with{" "}
+                    <code className="bg-background px-1 py-0.5 rounded">
+                      l1
+                    </code>{" "}
+                    and{" "}
+                    <code className="bg-background px-1 py-0.5 rounded">
+                      l2
+                    </code>{" "}
+                    highlighted at their current positions.
                   </p>
                 </div>
               </div>

@@ -31,6 +31,7 @@ interface ExecutionState {
   steps: ExecutionStep[];
   logs: LogEntry[];
   error: string | null;
+  visualizationMode: "global" | "scope";
 
   setCode: (code: string) => void;
   setIsRunning: (isRunning: boolean) => void;
@@ -39,6 +40,7 @@ interface ExecutionState {
   addLog: (log: Omit<LogEntry, "timestamp">) => void;
   clearLogs: () => void;
   setError: (error: string | null) => void;
+  setVisualizationMode: (mode: "global" | "scope") => void;
   reset: () => void;
   stepForward: () => void;
   stepBack: () => void;
@@ -55,11 +57,13 @@ export const useExecutionStore = create<ExecutionState>((set, get) => ({
   steps: [],
   logs: [],
   error: null,
+  visualizationMode: "scope",
 
   setCode: (code) => set({ code }),
   setIsRunning: (isRunning) => set({ isRunning }),
   setCurrentStep: (step) => set({ currentStep: step }),
   setSteps: (steps) => set({ steps, currentStep: 0 }),
+  setVisualizationMode: (mode) => set({ visualizationMode: mode }),
 
   addLog: (log) =>
     set((state) => ({

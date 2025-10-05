@@ -15,9 +15,15 @@ interface TreeVisualizerProps {
   };
   variableName: string;
   dataType: string;
+  highlightedNodes?: string[]; // IDs of nodes to highlight
+  nodeLabels?: Map<string, string[]>; // Map of node ID to variable names pointing to it
 }
 
-function buildFlowGraph(root: TreeNode | null): {
+function buildFlowGraph(
+  root: TreeNode | null,
+  highlightedNodes: string[] = [],
+  nodeLabels?: Map<string, string[]>
+): {
   nodes: Node[];
   edges: Edge[];
 } {
@@ -40,18 +46,30 @@ function buildFlowGraph(root: TreeNode | null): {
     horizontalSpacing: number,
     depth: number
   ) {
+    const isHighlighted = highlightedNodes.includes(node.id);
+    const labels = nodeLabels?.get(node.id) || [];
+
+    // Build label display
+    let labelContent = String(node.value);
+    if (labels.length > 0) {
+      labelContent = `${labels.join(", ")}\n${node.value}`;
+    }
+
     // Add current node
     nodes.push({
       id: node.id,
       position: { x, y },
-      data: { label: String(node.value) },
+      data: { label: labelContent },
       type: "default",
       sourcePosition: Position.Bottom,
       targetPosition: Position.Top,
       style: {
-        background:
-          "linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(168, 85, 247, 0.15))",
-        border: "2px solid rgba(59, 130, 246, 0.4)",
+        background: isHighlighted
+          ? "linear-gradient(135deg, rgba(59, 130, 246, 1), rgba(168, 85, 247, 1))"
+          : "linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(168, 85, 247, 0.15))",
+        border: isHighlighted
+          ? "4px solid rgba(250, 204, 21, 1)"
+          : "2px solid rgba(59, 130, 246, 0.4)",
         borderRadius: "50%",
         width: 50,
         height: 50,
@@ -62,6 +80,10 @@ function buildFlowGraph(root: TreeNode | null): {
         fontWeight: "bold",
         color: "#ffffff",
         textShadow: "0 1px 2px rgba(0, 0, 0, 0.3)",
+        boxShadow: isHighlighted
+          ? "0 0 20px rgba(250, 204, 21, 0.5)"
+          : undefined,
+        transform: isHighlighted ? "scale(1.1)" : undefined,
       },
     });
 
@@ -100,6 +122,8 @@ export function TreeVisualizer({
   data,
   variableName,
   dataType,
+  highlightedNodes = [],
+  nodeLabels,
 }: TreeVisualizerProps) {
   const [flowData, setFlowData] = useState<{ nodes: Node[]; edges: Edge[] }>({
     nodes: [],
@@ -108,10 +132,10 @@ export function TreeVisualizer({
 
   useEffect(() => {
     if (data.root) {
-      const graph = buildFlowGraph(data.root);
+      const graph = buildFlowGraph(data.root, highlightedNodes, nodeLabels);
       setFlowData(graph);
     }
-  }, [data]);
+  }, [data, highlightedNodes, nodeLabels]);
 
   if (!data.root) {
     return (

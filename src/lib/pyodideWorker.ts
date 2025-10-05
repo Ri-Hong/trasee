@@ -82,12 +82,12 @@ execution_steps = []
 current_frame_vars = {}
 call_stack_depth = 0
 
-# Variables to exclude (tracer internals)
+# Variables to exclude (tracer internals and common Python conventions)
 TRACER_VARS = {
     '_pyodide_core', 'sys', 'json', 'ast', 'traceback', 'math',
     'analyze_variables', 'execution_steps', 'current_frame_vars',
     'trace_calls', 'serialize_value', 'run_with_trace', 'TRACER_VARS',
-    'call_stack_depth', 'capture_variables'
+    'call_stack_depth', 'capture_variables', 'self'
 }
 
 def capture_variables(frame):
