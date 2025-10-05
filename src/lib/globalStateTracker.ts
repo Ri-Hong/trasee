@@ -77,8 +77,19 @@ function assignNodeIds(
     const nodeId = prefix;
     nodeMap.set(nodeId, value);
 
+    console.log(
+      `Assigned tree node ID ${nodeId} with value`,
+      value.__attrs__?.val ?? value.__attrs__?.value ?? value.__attrs__?.data
+    );
+    console.log(`Node ${nodeId} __attrs__:`, value.__attrs__);
+
     if (value.__attrs__) {
+      console.log(`Node ${nodeId} has __attrs__, checking children...`);
+      console.log(`  left:`, value.__attrs__.left);
+      console.log(`  right:`, value.__attrs__.right);
+
       if (value.__attrs__.left) {
+        console.log(`${nodeId} has left child`);
         assignNodeIds(
           value.__attrs__.left,
           structureType,
@@ -88,6 +99,7 @@ function assignNodeIds(
         );
       }
       if (value.__attrs__.right) {
+        console.log(`${nodeId} has right child`);
         assignNodeIds(
           value.__attrs__.right,
           structureType,
@@ -155,22 +167,63 @@ function findNodeInStructure(
         if (currVal === nodeVal) {
           // For linked lists, also check the next pointer to ensure we have the right node
           // (in case there are duplicate values)
-          const currNext = currentValue.__attrs__.next;
-          const nodeNext = nodeValue.__attrs__.next;
+          if (currentValue.__attrs__.next !== undefined) {
+            const currNext = currentValue.__attrs__.next;
+            const nodeNext = nodeValue.__attrs__.next;
 
-          // If both are null or both point to same next value, it's a match
-          if (!currNext && !nodeNext) return nodeId;
+            // If both are null or both point to same next value, it's a match
+            if (!currNext && !nodeNext) return nodeId;
 
-          if (currNext && nodeNext) {
-            const currNextVal =
-              currNext.__attrs__?.val ??
-              currNext.__attrs__?.value ??
-              currNext.__attrs__?.data;
-            const nodeNextVal =
-              nodeNext.__attrs__?.val ??
-              nodeNext.__attrs__?.value ??
-              nodeNext.__attrs__?.data;
-            if (currNextVal === nodeNextVal) return nodeId;
+            if (currNext && nodeNext) {
+              const currNextVal =
+                currNext.__attrs__?.val ??
+                currNext.__attrs__?.value ??
+                currNext.__attrs__?.data;
+              const nodeNextVal =
+                nodeNext.__attrs__?.val ??
+                nodeNext.__attrs__?.value ??
+                nodeNext.__attrs__?.data;
+              if (currNextVal === nodeNextVal) return nodeId;
+            }
+          }
+          // For trees, check left and right children to disambiguate duplicate values
+          else if (
+            currentValue.__attrs__.left !== undefined ||
+            currentValue.__attrs__.right !== undefined
+          ) {
+            const currLeft = currentValue.__attrs__.left;
+            const nodeLeft = nodeValue.__attrs__.left;
+            const currRight = currentValue.__attrs__.right;
+            const nodeRight = nodeValue.__attrs__.right;
+
+            // Check if children match
+            const leftMatches =
+              (!currLeft && !nodeLeft) ||
+              (currLeft &&
+                nodeLeft &&
+                (currLeft.__attrs__?.val ??
+                  currLeft.__attrs__?.value ??
+                  currLeft.__attrs__?.data) ===
+                  (nodeLeft.__attrs__?.val ??
+                    nodeLeft.__attrs__?.value ??
+                    nodeLeft.__attrs__?.data));
+
+            const rightMatches =
+              (!currRight && !nodeRight) ||
+              (currRight &&
+                nodeRight &&
+                (currRight.__attrs__?.val ??
+                  currRight.__attrs__?.value ??
+                  currRight.__attrs__?.data) ===
+                  (nodeRight.__attrs__?.val ??
+                    nodeRight.__attrs__?.value ??
+                    nodeRight.__attrs__?.data));
+
+            if (leftMatches && rightMatches) return nodeId;
+          }
+          // For other types without structural pointers, just match by value
+          else {
+            return nodeId;
           }
         }
       }
@@ -239,28 +292,68 @@ export function buildGlobalStateTracking(steps: ExecutionStep[]): {
 
       if (structureType === "unknown") return;
 
-      // Check if this variable already belongs to a known structure
+      // Special handling for traversal pointers (curr, current, node)
+      // Always try to match them to existing structures, don't create new ones
+      const isTraversalPointer = ["curr", "current", "node"].includes(
+        var_name.toLowerCase()
+      );
+
       let structureId = variableOrigins.get(var_name);
 
-      // If not, check if it points into any existing structure
-      if (!structureId) {
+      // For traversal pointers, always check all structures (don't use cached structureId)
+      // For regular variables, only check if we don't have a cached structureId
+      if (!structureId || isTraversalPointer) {
+        if (isTraversalPointer) {
+          console.log(
+            `Checking traversal pointer ${var_name}, found ${structures.size} structures`
+          );
+        }
         for (const [existingStructId, existingStruct] of structures.entries()) {
           if (existingStruct.structureType === structureType) {
+            // Skip matching against other traversal pointer structures
+            const isTraversalStructure = ["curr", "current", "node"].includes(
+              existingStruct.rootVarName.toLowerCase()
+            );
+            if (isTraversalPointer && isTraversalStructure) {
+              console.log(
+                `Skipping traversal structure ${existingStruct.rootVarName}`
+              );
+              continue;
+            }
+
+            if (isTraversalPointer) {
+              console.log(
+                `Trying to match ${var_name} against structure ${existingStruct.rootVarName} with ${existingStruct.nodes.size} nodes`
+              );
+            }
             const nodeId = findNodeInStructure(value, existingStruct.nodes);
             if (nodeId) {
+              console.log(
+                `Found ${var_name} pointing to node ${nodeId} in structure ${existingStruct.rootVarName}`
+              );
               structureId = existingStructId;
               variableOrigins.set(var_name, structureId);
               break;
+            } else if (isTraversalPointer) {
+              console.log(
+                `No match found for ${var_name} in ${existingStruct.rootVarName}`
+              );
             }
           }
         }
       }
 
       // If still no structure found, this is a new structure
+      // But skip creating structures for traversal pointers that didn't match
       if (!structureId) {
+        if (isTraversalPointer) {
+          // Don't create a structure for traversal pointers
+          return;
+        }
+
         structureId = `struct_${structures.size}_${var_name}`;
         const nodeMap = new Map<string, any>();
-        const prefix = `${var_name.charAt(0)}`;
+        const prefix = var_name; // Use full variable name to match prepareVisualizationData
         assignNodeIds(value, structureType, nodeMap, prefix);
 
         structures.set(structureId, {
@@ -271,12 +364,34 @@ export function buildGlobalStateTracking(steps: ExecutionStep[]): {
         });
 
         variableOrigins.set(var_name, structureId);
+      } else {
+        // Structure found - for trees, re-scan to pick up newly added children
+        const existingStruct = structures.get(structureId);
+        if (
+          existingStruct &&
+          existingStruct.structureType === "tree" &&
+          existingStruct.rootVarName === var_name
+        ) {
+          console.log(
+            `Re-scanning tree ${var_name} to pick up new children...`
+          );
+          const nodeMap = new Map<string, any>();
+          const prefix = var_name; // Use full variable name to match prepareVisualizationData
+          assignNodeIds(value, structureType, nodeMap, prefix);
+
+          // Update the structure with the new node map
+          existingStruct.nodes = nodeMap;
+          console.log(`Updated tree ${var_name} now has ${nodeMap.size} nodes`);
+        }
       }
 
       // Track pointer for this variable
       const structure = structures.get(structureId);
       if (structure) {
         const nodeId = findNodeInStructure(value, structure.nodes);
+        console.log(
+          `Tracking pointer: ${var_name} -> structure ${structure.rootVarName} (${structure.nodes.size} nodes) -> nodeId: ${nodeId}`
+        );
         pointers.push({
           varName: var_name,
           structureId,

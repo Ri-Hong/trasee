@@ -216,10 +216,20 @@ export function VisualizationPanel() {
                         if (structure.firstSeenStep > currentStep) return null;
 
                         // Skip structures for traversal pointers (they should appear as labels on other structures)
-                        const isTraversalPointer = ["curr", "current"].includes(
+                        const isTraversalPointer = [
+                          "curr",
+                          "current",
+                          "node",
+                        ].includes(structure.rootVarName.toLowerCase());
+                        if (isTraversalPointer) return null;
+
+                        // Skip intermediate construction variables (e.g., node_4, node_11)
+                        // These are temporary variables used to build the tree
+                        // But keep "node" (without underscore) as it's used for traversal
+                        const isConstructionVar = /^node_\d+/.test(
                           structure.rootVarName.toLowerCase()
                         );
-                        if (isTraversalPointer) return null;
+                        if (isConstructionVar) return null;
 
                         // Check if this is a builder variable (needed for traversal pointer logic)
                         const isBuilderVar = [
@@ -326,6 +336,16 @@ export function VisualizationPanel() {
                           }
                         });
 
+                        // Debug: Log which nodes are being highlighted
+                        if (highlightedNodes.length > 0) {
+                          console.log(
+                            `Highlighting nodes in ${structure.rootVarName}:`,
+                            highlightedNodes,
+                            "with labels:",
+                            Object.fromEntries(nodeLabels)
+                          );
+                        }
+
                         // Prepare visualization data from the global structure
                         if (structure.structureType === "linked_list") {
                           let nodesToRender;
@@ -416,30 +436,39 @@ export function VisualizationPanel() {
                         }
 
                         if (structure.structureType === "tree") {
-                          // For trees, we need to reconstruct the tree structure
-                          // This is more complex - for now, use the first pointer's value
-                          const firstPointer = pointersToStructure[0];
-                          if (firstPointer) {
-                            const variable = variables.find(
-                              (v) => v.var_name === firstPointer.varName
-                            );
-                            if (variable) {
-                              const vizData = prepareVisualizationData(
-                                variable,
-                                "tree"
+                          // For trees, show the CURRENT state at this step
+                          // Look for the root variable in current step, or walk backwards to find most recent state
+                          let currentVariable = variables.find(
+                            (v) => v.var_name === structure.rootVarName
+                          );
+
+                          // If not in current step (e.g., we're in a nested scope), find the most recent state
+                          if (!currentVariable) {
+                            for (let i = currentStep - 1; i >= 0; i--) {
+                              const prevStepVars = steps[i]?.variables || [];
+                              currentVariable = prevStepVars.find(
+                                (v) => v.var_name === structure.rootVarName
                               );
-                              return (
-                                <div key={structId}>
-                                  <TreeVisualizer
-                                    data={vizData}
-                                    variableName={structure.rootVarName}
-                                    dataType="tree"
-                                    highlightedNodes={highlightedNodes}
-                                    nodeLabels={nodeLabels}
-                                  />
-                                </div>
-                              );
+                              if (currentVariable) break;
                             }
+                          }
+
+                          if (currentVariable) {
+                            const vizData = prepareVisualizationData(
+                              currentVariable,
+                              "tree"
+                            );
+                            return (
+                              <div key={structId}>
+                                <TreeVisualizer
+                                  data={vizData}
+                                  variableName={structure.rootVarName}
+                                  dataType="tree"
+                                  highlightedNodes={highlightedNodes}
+                                  nodeLabels={nodeLabels}
+                                />
+                              </div>
+                            );
                           }
                         }
 

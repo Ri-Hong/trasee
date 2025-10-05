@@ -109,7 +109,7 @@ def pathSum(root: TreeNode, targetSum: int) -> list[list[int]]:
     dfs(root, targetSum)
     return result
 
-# Test the function
+# Test the function - Build tree top-down to see each node added
 #       5
 #      / \\
 #     4   8
@@ -117,9 +117,24 @@ def pathSum(root: TreeNode, targetSum: int) -> list[list[int]]:
 #   11  13  4
 #  /  \\      \\
 # 7    2      1
+
+# Build tree from root down - each assignment adds one visible node
 root = TreeNode(5)
-root.left = TreeNode(4, TreeNode(11, TreeNode(7), TreeNode(2)))
-root.right = TreeNode(8, TreeNode(13), TreeNode(4, None, TreeNode(1)))
+
+# Add level 2: children of root
+root.left = TreeNode(4)
+root.right = TreeNode(8)
+
+# Add level 3: children of node 4 and node 8
+root.left.left = TreeNode(11)
+root.right.left = TreeNode(13)
+root.right.right = TreeNode(4)
+
+# Add level 4: children of the deepest nodes
+root.left.left.left = TreeNode(7)
+root.left.left.right = TreeNode(2)
+root.right.right.right = TreeNode(1)
+
 target = 22
 result = pathSum(root, target)
 print(f"Paths with sum {target}: {result}")
