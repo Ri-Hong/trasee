@@ -112,6 +112,17 @@ function assignNodeIds(
     return nodeId;
   }
 
+  if (structureType === "list") {
+    // For arrays, each element gets an index-based ID
+    if (Array.isArray(value)) {
+      value.forEach((item, idx) => {
+        const nodeId = `${prefix}_${idx}`;
+        nodeMap.set(nodeId, item);
+      });
+      return `${prefix}_0`; // Return ID of first element
+    }
+  }
+
   return null;
 }
 
@@ -166,6 +177,13 @@ function findNodeInStructure(
     }
   }
 
+  // For arrays, match by value and index
+  if (Array.isArray(currentValue)) {
+    for (const [nodeId, nodeValue] of structureNodes.entries()) {
+      if (nodeValue === currentValue) return nodeId;
+    }
+  }
+
   return null;
 }
 
@@ -201,19 +219,22 @@ export function buildGlobalStateTracking(steps: ExecutionStep[]): {
       }
 
       // Check if this is a complex data structure
-      const isComplexStructure = typeof value === "object" && value.__attrs__;
+      const isComplexStructure =
+        typeof value === "object" && (value.__attrs__ || Array.isArray(value));
 
       if (!isComplexStructure) return;
 
       // Determine structure type
       let structureType: DataStructureType = "unknown";
-      if (value.__attrs__.next !== undefined) {
+      if (value.__attrs__?.next !== undefined) {
         structureType = "linked_list";
       } else if (
-        value.__attrs__.left !== undefined ||
-        value.__attrs__.right !== undefined
+        value.__attrs__?.left !== undefined ||
+        value.__attrs__?.right !== undefined
       ) {
         structureType = "tree";
+      } else if (Array.isArray(value)) {
+        structureType = "list";
       }
 
       if (structureType === "unknown") return;

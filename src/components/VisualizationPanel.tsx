@@ -439,6 +439,66 @@ export function VisualizationPanel() {
                           }
                         }
 
+                        if (structure.structureType === "list") {
+                          // For lists, show the current state
+                          let currentVariable = variables.find(
+                            (v) => v.var_name === structure.rootVarName
+                          );
+
+                          // If not in current step, find the most recent state
+                          if (!currentVariable) {
+                            for (let i = currentStep - 1; i >= 0; i--) {
+                              const prevStepVars = steps[i]?.variables || [];
+                              currentVariable = prevStepVars.find(
+                                (v) => v.var_name === structure.rootVarName
+                              );
+                              if (currentVariable) break;
+                            }
+                          }
+
+                          if (currentVariable) {
+                            const vizData = prepareVisualizationData(
+                              currentVariable,
+                              "list"
+                            );
+
+                            // Find any iteration indices in the current step
+                            const highlightedIndices = new Set<number>();
+                            const indexLabelsMap = new Map<number, string[]>();
+
+                            variables.forEach((variable) => {
+                              // Check if this is an iteration index variable
+                              if (
+                                variable.var_name.startsWith("__") &&
+                                variable.var_name.endsWith("_index")
+                              ) {
+                                const iterVar = variable.var_name.slice(2, -6); // Remove __ prefix and _index suffix
+                                const index = variable.value as number;
+                                highlightedIndices.add(index);
+
+                                // Add the iteration variable as a label
+                                const labels = indexLabelsMap.get(index) || [];
+                                labels.push(iterVar);
+                                indexLabelsMap.set(index, labels);
+                              }
+                            });
+
+                            return (
+                              <div key={structId}>
+                                <ListVisualizer
+                                  data={vizData}
+                                  variableName={structure.rootVarName}
+                                  dataType="list"
+                                  highlightedIndices={Array.from(
+                                    highlightedIndices
+                                  )}
+                                  indexLabels={indexLabelsMap}
+                                />
+                              </div>
+                            );
+                          }
+                        }
+
                         return null;
                       }
                     )}

@@ -79,31 +79,44 @@ def analyze_variables(code):
 
 # Analyze loops to determine which lines are inside loops
 def analyze_loops(code):
-    """Identify which lines are inside loop bodies."""
+    """Identify which lines are inside loop bodies and track iteration variables."""
     try:
         tree = ast.parse(code)
-        loop_lines = set()
+        loop_info = {}
         
         def visit_loop(node):
-            # For, While loops
-            if isinstance(node, (ast.For, ast.While)):
+            # For loops
+            if isinstance(node, ast.For):
                 # Get all lines in the loop body
                 for child in ast.walk(node):
                     if hasattr(child, 'lineno'):
-                        loop_lines.add(child.lineno)
+                        # Store both the line number and iteration info
+                        loop_info[child.lineno] = {
+                            'type': 'for',
+                            'target': node.target.id if isinstance(node.target, ast.Name) else None,
+                            'iter': node.iter.id if isinstance(node.iter, ast.Name) else None
+                        }
+            # While loops
+            elif isinstance(node, ast.While):
+                for child in ast.walk(node):
+                    if hasattr(child, 'lineno'):
+                        loop_info[child.lineno] = {
+                            'type': 'while'
+                        }
         
         for node in ast.walk(tree):
             visit_loop(node)
         
-        return loop_lines
+        return loop_info
     except Exception as e:
-        return set()
+        return {}
 
 # Runtime Tracing
 execution_steps = []
 current_frame_vars = {}
 call_stack_depth = 0
-loop_lines = set()  # Will be populated in run_with_trace
+loop_info = {}  # Will be populated in run_with_trace
+iter_indices = {}  # Track iteration indices for each loop variable
 
 # Variables to exclude (tracer internals and common Python conventions)
 TRACER_VARS = {
@@ -111,7 +124,7 @@ TRACER_VARS = {
     'analyze_variables', 'execution_steps', 'current_frame_vars',
     'trace_calls', 'serialize_value', 'run_with_trace', 'TRACER_VARS',
     'call_stack_depth', 'capture_variables', 'self', 'analyze_loops',
-    'loop_lines'
+    'loop_info', 'iter_indices'
 }
 
 def capture_variables(frame):
@@ -160,12 +173,34 @@ def capture_variables(frame):
             "value": serialize_value(value)
         }
         variables.append(var_info)
+        
+        # If this is a loop iteration variable, add its index
+        lineno = frame.f_lineno
+        if lineno in loop_info and loop_info[lineno]['type'] == 'for':
+            target = loop_info[lineno]['target']
+            iterable = loop_info[lineno]['iter']
+            if target == var_name and iterable in local_vars:
+                # Get the iterable
+                iter_list = local_vars[iterable]
+                if isinstance(iter_list, list):
+                    # Find the index of the current value in the list
+                    try:
+                        index = iter_list.index(value)
+                        # Add a special variable to track the index
+                        variables.append({
+                            "scope_id": scope_id,
+                            "var_name": f"__{var_name}_index",
+                            "type": "int",
+                            "value": index
+                        })
+                    except ValueError:
+                        pass
     
     return variables
 
 def trace_calls(frame, event, arg):
     """Trace function to capture execution steps."""
-    global call_stack_depth, loop_lines
+    global call_stack_depth, loop_info
     try:
         if event not in ('line', 'call', 'return'):
             return trace_calls
@@ -196,16 +231,15 @@ def trace_calls(frame, event, arg):
         variables = capture_variables(frame)
         
         # Check if current line is in a loop
-        in_loop = lineno in loop_lines
+        in_loop = lineno in loop_info
         
         # Record step
         step = {
-            "line": lineno,
+            "lineno": lineno,
             "event": event,
             "variables": variables,
             "scope_id": scope_id,
-            "function_name": function_name,
-            "depth": call_stack_depth,
+            "call_depth": call_stack_depth,
             "in_loop": in_loop
         }
         execution_steps.append(step)
@@ -280,12 +314,12 @@ def serialize_value(value, max_depth=5, current_depth=0):
 
 def run_with_trace(code):
     """Execute code with tracing enabled."""
-    global execution_steps, call_stack_depth, loop_lines
+    global execution_steps, call_stack_depth, loop_info
     execution_steps = []
     call_stack_depth = 0
     
-    # Analyze which lines are in loops
-    loop_lines = analyze_loops(code)
+    # Analyze which lines are in loops and get iteration info
+    loop_info = analyze_loops(code)
     
     try:
         # Create a fresh namespace for each execution
