@@ -126,6 +126,20 @@ def capture_variables(frame):
     else:
         local_vars = frame.f_locals.copy()
     
+    # Check if we're in a constructor
+    is_constructor = (
+        frame.f_code.co_name == '__init__' and
+        'self' in local_vars and
+        type(local_vars['self']).__name__ != 'module'
+    )
+    
+    # If we're in a constructor, get variables from parent scope instead
+    if is_constructor:
+        if frame.f_back and frame.f_back.f_code.co_filename == '<string>':
+            return capture_variables(frame.f_back)
+        return []
+    
+    # For non-constructor scopes, process local variables
     for var_name, value in local_vars.items():
         # Skip dunder variables
         if var_name.startswith('__'):
