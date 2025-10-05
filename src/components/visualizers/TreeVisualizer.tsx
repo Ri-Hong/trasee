@@ -26,68 +26,72 @@ function buildFlowGraph(root: TreeNode | null): {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
 
-  // Calculate positions using a simple level-based layout
-  const levels: TreeNode[][] = [];
-
-  function traverse(node: TreeNode, level: number) {
-    if (!levels[level]) levels[level] = [];
-    levels[level].push(node);
-
-    node.children.forEach((child) => {
-      traverse(child, level + 1);
-    });
+  // Calculate the depth of the tree
+  function getTreeDepth(node: TreeNode | null): number {
+    if (!node || node.children.length === 0) return 0;
+    return 1 + Math.max(...node.children.map(getTreeDepth));
   }
 
-  traverse(root, 0);
-
-  // Calculate positions
-  const levelHeight = 100;
-  levels.forEach((levelNodes, levelIdx) => {
-    const levelWidth = levelNodes.length * 100;
-    levelNodes.forEach((node, nodeIdx) => {
-      const x = (nodeIdx - (levelNodes.length - 1) / 2) * 120;
-      const y = levelIdx * levelHeight;
-
-      nodes.push({
-        id: node.id,
-        position: { x, y },
-        data: { label: String(node.value) },
-        type: "default",
-        sourcePosition: Position.Bottom,
-        targetPosition: Position.Top,
-        style: {
-          background:
-            "linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(168, 85, 247, 0.15))",
-          border: "2px solid rgba(59, 130, 246, 0.4)",
-          borderRadius: "50%",
-          width: 50,
-          height: 50,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: "14px",
-          fontWeight: "bold",
-          color: "#ffffff",
-          textShadow: "0 1px 2px rgba(0, 0, 0, 0.3)",
-        },
-      });
+  // Recursive layout function that positions nodes properly
+  function layoutTree(
+    node: TreeNode,
+    x: number,
+    y: number,
+    horizontalSpacing: number,
+    depth: number
+  ) {
+    // Add current node
+    nodes.push({
+      id: node.id,
+      position: { x, y },
+      data: { label: String(node.value) },
+      type: "default",
+      sourcePosition: Position.Bottom,
+      targetPosition: Position.Top,
+      style: {
+        background:
+          "linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(168, 85, 247, 0.15))",
+        border: "2px solid rgba(59, 130, 246, 0.4)",
+        borderRadius: "50%",
+        width: 50,
+        height: 50,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: "14px",
+        fontWeight: "bold",
+        color: "#ffffff",
+        textShadow: "0 1px 2px rgba(0, 0, 0, 0.3)",
+      },
     });
-  });
 
-  // Build edges
-  function buildEdges(node: TreeNode) {
-    node.children.forEach((child) => {
-      edges.push({
-        id: `${node.id}-${child.id}`,
-        source: node.id,
-        target: child.id,
-        style: { stroke: "rgba(59, 130, 246, 0.5)", strokeWidth: 2 },
+    // Position children with spacing that decreases with depth
+    if (node.children.length > 0) {
+      const childSpacing = horizontalSpacing / Math.pow(2, depth);
+
+      node.children.forEach((child, index) => {
+        // Calculate child position relative to parent
+        const offset = (index - (node.children.length - 1) / 2) * childSpacing;
+        const childX = x + offset;
+
+        // Add edge from parent to child
+        edges.push({
+          id: `${node.id}-${child.id}`,
+          source: node.id,
+          target: child.id,
+          style: { stroke: "rgba(59, 130, 246, 0.5)", strokeWidth: 2 },
+        });
+
+        // Recursively layout child subtree
+        layoutTree(child, childX, y + 100, horizontalSpacing, depth + 1);
       });
-      buildEdges(child);
-    });
+    }
   }
 
-  buildEdges(root);
+  // Start layout from root
+  const treeDepth = getTreeDepth(root);
+  const horizontalSpacing = 80 * Math.pow(2, Math.min(treeDepth, 5));
+  layoutTree(root, 0, 0, horizontalSpacing, 0);
 
   return { nodes, edges };
 }
