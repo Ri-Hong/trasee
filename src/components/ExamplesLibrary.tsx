@@ -334,7 +334,7 @@ export function ExamplesLibrary({ onSelectExample }: ExamplesLibraryProps) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
-          <BookOpen className="w-4 h-4 mr-2" />
+          <BookOpen className="w-4 h-4 mt-[2px]" />
           Examples
         </Button>
       </DialogTrigger>

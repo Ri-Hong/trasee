@@ -65,7 +65,7 @@ export function ControlPanel({
           size="sm"
         >
           <Play className="w-4 h-4 mr-2" />
-          Visualize
+          Run
         </Button>
 
         <div className="flex items-center gap-1">
@@ -159,7 +159,7 @@ export function ControlPanel({
         </div>
 
         <Button onClick={onReset} variant="outline" size="sm">
-          <RotateCcw className="w-4 h-4 mr-2" />
+          <RotateCcw className="w-4 h-4 mt-[2px]" />
           Reset
         </Button>
 
