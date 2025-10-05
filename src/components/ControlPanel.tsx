@@ -266,6 +266,23 @@ export function ControlPanel({
                       </p>
                     </div>
                   </div>
+                  <div className="flex items-start gap-3">
+                    <Repeat className="w-5 h-5 mt-0.5 text-cyan-500" />
+                    <div>
+                      <p className="font-medium">Step to Next Iteration</p>
+                      <p className="text-sm text-muted-foreground">
+                        Skip ahead to the{" "}
+                        <strong>next iteration of the current loop</strong>.
+                        This jumps to the next time the current line executes in
+                        the next iteration, skipping all remaining lines in the
+                        current iteration.
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1 italic">
+                        Use when: You're in a loop and want to skip ahead to see
+                        how the next iteration behaves
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -332,7 +349,7 @@ export function ControlPanel({
         </Dialog>
 
         <div className="ml-auto text-sm text-muted-foreground">
-          Python Code Visualizer
+          Trasee - Python Code Visualizer
         </div>
       </div>
     </TooltipProvider>
