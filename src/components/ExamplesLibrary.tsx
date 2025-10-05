@@ -70,11 +70,11 @@ result = addTwoNumbers(l1, l2)
 `,
   },
   {
-    id: "invert_binary_tree",
-    title: "Invert Binary Tree",
+    id: "path_sum_ii",
+    title: "Path Sum II (DFS)",
     description:
-      "Invert a binary tree by swapping left and right children at every node.",
-    difficulty: "Easy",
+      "Find all root-to-leaf paths where the sum equals a target using DFS and backtracking.",
+    difficulty: "Medium",
     dataStructures: ["Binary Tree"],
     icon: TreePine,
     code: `# Definition for a binary tree node.
@@ -84,29 +84,45 @@ class TreeNode:
         self.left = left
         self.right = right
 
-def invertTree(root: TreeNode) -> TreeNode:
-    if not root:
-        return None
+def pathSum(root: TreeNode, targetSum: int) -> list[list[int]]:
+    result = []
+    current_path = []
     
-    # Swap the left and right children
-    root.left, root.right = root.right, root.left
+    def dfs(node, remaining):
+        if not node:
+            return
+        
+        # Add current node to path
+        current_path.append(node.val)
+        
+        # Check if it's a leaf and sum matches
+        if not node.left and not node.right and remaining == node.val:
+            result.append(current_path.copy())
+        
+        # Explore left and right subtrees
+        dfs(node.left, remaining - node.val)
+        dfs(node.right, remaining - node.val)
+        
+        # Backtrack: remove current node from path
+        current_path.pop()
     
-    # Recursively invert the subtrees
-    invertTree(root.left)
-    invertTree(root.right)
-    
-    return root
+    dfs(root, targetSum)
+    return result
 
 # Test the function
-#     4
-#   /   \\
-#  2     7
-# / \\   / \\
-#1   3 6   9
-root = TreeNode(4)
-root.left = TreeNode(2, TreeNode(1), TreeNode(3))
-root.right = TreeNode(7, TreeNode(6), TreeNode(9))
-result = invertTree(root)
+#       5
+#      / \\
+#     4   8
+#    /   / \\
+#   11  13  4
+#  /  \\      \\
+# 7    2      1
+root = TreeNode(5)
+root.left = TreeNode(4, TreeNode(11, TreeNode(7), TreeNode(2)))
+root.right = TreeNode(8, TreeNode(13), TreeNode(4, None, TreeNode(1)))
+target = 22
+result = pathSum(root, target)
+print(f"Paths with sum {target}: {result}")
 `,
   },
   {
