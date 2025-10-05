@@ -234,21 +234,6 @@ export function VisualizationPanel() {
                         // Also check ALL variables to see if they point into this structure
                         // This catches traversal pointers like curr that might not be tracked correctly
                         if (isBuilderVar) {
-                          console.log(
-                            `[${structure.rootVarName}] Checking for traversal pointers`
-                          );
-                          console.log(
-                            "Variables:",
-                            variables.map((v) => ({
-                              name: v.var_name,
-                              hasNext: v.value?.__attrs__?.next !== undefined,
-                            }))
-                          );
-                          console.log(
-                            "Existing pointers:",
-                            pointersToStructure.map((p) => p.varName)
-                          );
-
                           variables.forEach((variable) => {
                             // Skip if already tracked
                             const alreadyTracked = pointersToStructure.some(
@@ -265,8 +250,6 @@ export function VisualizationPanel() {
                             ) {
                               return;
                             }
-
-                            console.log(`  Checking ${variable.var_name}...`);
 
                             // Get the current structure's node list
                             let currentStructureVar = variables.find(
@@ -310,9 +293,6 @@ export function VisualizationPanel() {
                                   const nodeId = `${structure.rootVarName.charAt(
                                     0
                                   )}_${nodeIndex}`;
-                                  console.log(
-                                    `    MATCH! ${variable.var_name} points to node ${nodeId} (value: ${structVal})`
-                                  );
                                   pointersToStructure.push({
                                     varName: variable.var_name,
                                     structureId: structId,
@@ -327,13 +307,6 @@ export function VisualizationPanel() {
                               }
                             }
                           });
-
-                          console.log(
-                            "Final pointers after checking:",
-                            pointersToStructure.map(
-                              (p) => `${p.varName} -> ${p.nodeId}`
-                            )
-                          );
                         }
 
                         // Build highlighted nodes and labels

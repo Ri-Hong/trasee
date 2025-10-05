@@ -10,6 +10,7 @@ import {
   Repeat,
   Globe,
   Eye,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -66,8 +67,12 @@ export function ControlPanel({
           className="bg-gradient-success hover:opacity-90 transition-opacity"
           size="sm"
         >
-          <Hammer className="w-4 h-4 mr-1" />
-          Build
+          {isRunning ? (
+            <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+          ) : (
+            <Hammer className="w-4 h-4 mr-1" />
+          )}
+          {isRunning ? "Building..." : "Build"}
         </Button>
 
         <div className="flex items-center gap-1">

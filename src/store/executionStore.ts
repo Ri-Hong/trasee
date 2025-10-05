@@ -57,7 +57,7 @@ export const useExecutionStore = create<ExecutionState>((set, get) => ({
   steps: [],
   logs: [],
   error: null,
-  visualizationMode: "scope",
+  visualizationMode: "global",
 
   setCode: (code) => set({ code }),
   setIsRunning: (isRunning) => set({ isRunning }),
