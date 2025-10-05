@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CodeEditor } from "@/components/CodeEditor";
 import { ControlPanel } from "@/components/ControlPanel";
 import { VisualizationPanel } from "@/components/VisualizationPanel";
@@ -62,6 +62,8 @@ const Index = () => {
     stepOut,
     stepToNextIteration,
     setError,
+    isAutoPlaying,
+    setAutoPlaying,
   } = useExecutionStore();
 
   const handleRun = async () => {
@@ -191,10 +193,38 @@ const Index = () => {
     stepToNextIteration();
   };
 
+  const handleToggleAutoPlay = () => {
+    setAutoPlaying(!isAutoPlaying);
+  };
+
   const handleReset = () => {
     reset();
     toast.info("Execution state cleared");
   };
+
+  // Autoplay effect - repeatedly calls stepForward when enabled
+  useEffect(() => {
+    if (!isAutoPlaying || isRunning) return;
+
+    // Stop autoplay if we've reached the end
+    if (currentStep >= steps.length - 1) {
+      setAutoPlaying(false);
+      return;
+    }
+
+    const intervalId = setInterval(() => {
+      stepForward();
+    }, 500); // 500ms delay between steps
+
+    return () => clearInterval(intervalId);
+  }, [
+    isAutoPlaying,
+    currentStep,
+    steps.length,
+    isRunning,
+    stepForward,
+    setAutoPlaying,
+  ]);
 
   const handleLoadExample = async (exampleCode: string) => {
     reset();
@@ -311,10 +341,12 @@ const Index = () => {
         onStepToNextIteration={handleStepToNextIteration}
         onReset={handleReset}
         onLoadExample={handleLoadExample}
+        onToggleAutoPlay={handleToggleAutoPlay}
         isRunning={isRunning}
         canStepBack={canStepBack}
         canStepForward={canStepForward}
         isInLoop={isInLoop}
+        isAutoPlaying={isAutoPlaying}
       />
 
       <ResizablePanelGroup direction="horizontal" className="flex-1">

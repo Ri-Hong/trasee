@@ -11,6 +11,8 @@ import {
   Globe,
   Eye,
   Loader2,
+  Play,
+  Pause,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,10 +41,12 @@ interface ControlPanelProps {
   onStepToNextIteration: () => void;
   onReset: () => void;
   onLoadExample: (code: string) => void;
+  onToggleAutoPlay: () => void;
   isRunning: boolean;
   canStepBack: boolean;
   canStepForward: boolean;
   isInLoop: boolean;
+  isAutoPlaying: boolean;
 }
 
 export function ControlPanel({
@@ -55,10 +59,12 @@ export function ControlPanel({
   onStepToNextIteration,
   onReset,
   onLoadExample,
+  onToggleAutoPlay,
   isRunning,
   canStepBack,
   canStepForward,
   isInLoop,
+  isAutoPlaying,
 }: ControlPanelProps) {
   return (
     <TooltipProvider>
@@ -96,7 +102,7 @@ export function ControlPanel({
             <TooltipTrigger asChild>
               <Button
                 onClick={onStepForward}
-                disabled={!canStepForward || isRunning}
+                disabled={!canStepForward || isRunning || isAutoPlaying}
                 variant="secondary"
                 size="sm"
               >
@@ -104,6 +110,26 @@ export function ControlPanel({
               </Button>
             </TooltipTrigger>
             <TooltipContent>Step Forward</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={onToggleAutoPlay}
+                disabled={!canStepForward || isRunning}
+                variant={isAutoPlaying ? "default" : "secondary"}
+                size="sm"
+              >
+                {isAutoPlaying ? (
+                  <Pause className="w-4 h-4" />
+                ) : (
+                  <Play className="w-4 h-4" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {isAutoPlaying ? "Pause Auto-play" : "Auto-play"}
+            </TooltipContent>
           </Tooltip>
         </div>
 
@@ -114,7 +140,7 @@ export function ControlPanel({
             <TooltipTrigger asChild>
               <Button
                 onClick={onStepInto}
-                disabled={!canStepForward || isRunning}
+                disabled={!canStepForward || isRunning || isAutoPlaying}
                 variant="secondary"
                 size="sm"
               >
@@ -128,7 +154,7 @@ export function ControlPanel({
             <TooltipTrigger asChild>
               <Button
                 onClick={onStepOver}
-                disabled={!canStepForward || isRunning}
+                disabled={!canStepForward || isRunning || isAutoPlaying}
                 variant="secondary"
                 size="sm"
               >
@@ -142,7 +168,7 @@ export function ControlPanel({
             <TooltipTrigger asChild>
               <Button
                 onClick={onStepOut}
-                disabled={!canStepForward || isRunning}
+                disabled={!canStepForward || isRunning || isAutoPlaying}
                 variant="secondary"
                 size="sm"
               >
@@ -156,7 +182,9 @@ export function ControlPanel({
             <TooltipTrigger asChild>
               <Button
                 onClick={onStepToNextIteration}
-                disabled={!canStepForward || isRunning || !isInLoop}
+                disabled={
+                  !canStepForward || isRunning || !isInLoop || isAutoPlaying
+                }
                 variant="secondary"
                 size="sm"
               >
@@ -220,6 +248,17 @@ export function ControlPanel({
                       <p className="font-medium">Step Forward</p>
                       <p className="text-sm text-muted-foreground">
                         Move to the next execution step
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Play className="w-5 h-5 mt-0.5 text-green-500" />
+                    <div>
+                      <p className="font-medium">Auto-play</p>
+                      <p className="text-sm text-muted-foreground">
+                        Automatically step forward through execution at a steady
+                        pace. Click pause to stop. Auto-play will stop
+                        automatically when the end is reached.
                       </p>
                     </div>
                   </div>

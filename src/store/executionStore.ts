@@ -33,6 +33,7 @@ interface ExecutionState {
   logs: LogEntry[];
   error: string | null;
   visualizationMode: "global" | "scope";
+  isAutoPlaying: boolean;
 
   setCode: (code: string) => void;
   setIsRunning: (isRunning: boolean) => void;
@@ -42,6 +43,7 @@ interface ExecutionState {
   clearLogs: () => void;
   setError: (error: string | null) => void;
   setVisualizationMode: (mode: "global" | "scope") => void;
+  setAutoPlaying: (isAutoPlaying: boolean) => void;
   reset: () => void;
   stepForward: () => void;
   stepBack: () => void;
@@ -59,12 +61,14 @@ export const useExecutionStore = create<ExecutionState>((set, get) => ({
   logs: [],
   error: null,
   visualizationMode: "global",
+  isAutoPlaying: false,
 
   setCode: (code) => set({ code }),
   setIsRunning: (isRunning) => set({ isRunning }),
   setCurrentStep: (step) => set({ currentStep: step }),
   setSteps: (steps) => set({ steps, currentStep: 0 }),
   setVisualizationMode: (mode) => set({ visualizationMode: mode }),
+  setAutoPlaying: (isAutoPlaying) => set({ isAutoPlaying }),
 
   addLog: (log) =>
     set((state) => ({
@@ -82,6 +86,7 @@ export const useExecutionStore = create<ExecutionState>((set, get) => ({
       logs: [],
       error: null,
       isRunning: false,
+      isAutoPlaying: false,
     }),
 
   stepForward: () => {
